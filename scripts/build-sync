@@ -37,6 +37,36 @@ build_sync_svn()
 	fi
 }
 
+build_sync_http()
+{
+	HTTP_FILE="${1##*/}"
+	HTTP_FILE="${HTTP_FILE%%\?*}"
+
+	if [ ! -f "${BUILDER_SRCDIR}/${HTTP_FILE}" ]; then
+		HTTP_TMP="$(mktemp /tmp/builder_${NAME}.XXXXXX)"
+		if command -v "wget" > /dev/null 2>&1; then
+			wget -O "${HTTP_TMP}" "${1}" || return 1
+		fi
+
+		mv "${HTTP_TMP}" "${BUILDER_SRCDIR}/${HTTP_FILE}" || return 1
+	fi
+
+	case "${HTTP_FILE}" in
+	(*.tar.bz2|*.tbz2)
+		bzip -dc "${BUILDER_SRCDIR}/${HTTP_FILE}" | tar x -C "${S}";;
+	(*.tar.[Zz]|*.tz)
+		gzip -dc "${BUILDER_SRCDIR}/${HTTP_FILE}" | tar x -C "${S}";;
+	(*.tar.gz|*.tgz)
+		gzip -dc "${BUILDER_SRCDIR}/${HTTP_FILE}" | tar x -C "${S}";;
+	(*)	die "do not know how to extract '${HTTP_FILE}'";;
+	esac
+
+	if [ -d "${S}/${NAME}-${VERSION}" ]; then
+		mv "${S}/${NAME}-${VERSION}"/* "${S}/"
+		rmdir "${S}/${NAME}-${VERSION}"
+	fi
+}
+
 [ -d "${D}" ] || mkdir -p "${D}"
 [ -d "${S}" ] || mkdir -p "${S}"
 [ -d "${L}" ] || mkdir -p "${L}"
@@ -60,6 +90,8 @@ else
 	case "${SOURCE_URI}" in
 	(svn://*)	build_sync_svn "${SOURCE_URI}";;
 	(git://*)	build_sync_git "${SOURCE_URI}";;
+	(http://*)	build_sync_http "${SOURCE_URI}";;
+	(ftp://*)	build_sync_http "${SOURCE_URI}";;
 	# Everything else is death
 	(*)		die "do not know how to handle '${SOURCE_URI}'"
 	esac >> "${L}/sync.log" 2>&1
