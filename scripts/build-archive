@@ -1,0 +1,30 @@
+#!/bin/sh
+
+if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
+	echo "error: cannot locate builder library" >&2
+	exit 1
+fi
+
+. "${BUILDER_BINDIR}/libbuilder.sh"
+
+import "${1}"
+
+ARCHIVE_TMP=
+cleanup()
+{
+	[ -f "${ARCHIVE_TMP}" ] && rm -f "${ARCHIVE_TMP}"
+}
+trap cleanup EXIT
+
+
+ARCHIVE_TMP="$(mktemp /tmp/${NAME}-${VERSION}.XXXXXXXX)"
+
+[ -f "${ARCHIVE_TMP}" ] || die "failed to create temporary archive for package '${NAME}'"
+
+case "${ARCHIVE_FORMAT}" in
+(tbz2|tar.bz2)	ARCHIVE_COMPRESSOR="bzip2 -c";;
+(tgz|tar.gz)	ARCHIVE_COMPRESSOR="gzip -c";;
+(*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
+esac
+
+cd "${D}" && tar c . | ${ARCHIVE_COMPRESSOR} > "${ARCHIVE_TMP}" && mv "${ARCHIVE_TMP}" "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"

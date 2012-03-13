@@ -1,0 +1,231 @@
+#!/bin/sh
+
+## usage
+# Simply display the builder usage.  Though it would be nice if some of this
+# information was pushed down into the sub-commands.
+usage()
+{
+cat<<EOF
+usage: ${0##*/} [options] <command> [command-opts] <package|all>
+
+Options
+-------
+ -t, --target	Specify a build-target.  This is a generic concept which tells
+		builder the name of the config rule to pick up from the
+		.builder/ path at the top of the build-tree.  The global config
+		.builder/config is always evaluated before evaluating any
+		target-specific configs.  This allows for nightly and release
+		targets, as well as architecture specific variations.
+
+ -v, --version	Display the builder version.
+
+ -d, --debug	Enable debug logging.
+
+ -h, --help	Display the builder help and exit (may appear anywhere on the
+		command line).
+
+Commands
+--------
+
+  info		The info is used both internally by builder, as well as allows
+		one to query various packages from the builder repository.
+
+		options
+		-------
+
+		  -b, --build-deps
+		  -d, --depends
+		  -n, --name
+		  -d, --description
+		  -v, --version
+		  -u, --source-uri
+		  -s, --summary
+
+  sync		Fetch , unpack, and patch any sources from the source uri.  If
+		a local source has been checked out into the package directory
+		then the fetch/unpack portion simply copies the local checked
+		out source to the workdir for compilation.
+
+  compile	Compile the source code.  During this stage the CC, CHOST, LD,
+		and a variety of other target-specific variables will be set
+		and usable within the build rules script. The predefined
+		behavior for this action is to cd into the workdir, produce a
+		configure script from the configure.in if necessary, run the
+		configure with predefined BUILDER_CONFIG_OPTS, and then perform
+		a make with BUILDER_MAKE_OPTS.
+
+  archive	Perform a 'make install' of the package into the package's
+		sysroot and then produce an archive of the package and store
+		that in the build-tree's artifact directory.
+
+  install	Install a package into the build-tree's sysroot (as opposed to
+		a packages sysroot or into the build-host's root).  This is
+		done automatically for any build-dependent packages.
+
+EOF
+}
+
+## cleanup
+# deal with temporary junk when we exit
+cleanup()
+{
+	[ -f "${BUILDER_MAKEFILE}" ] && rm -f "${BUILDER_MAKEFILE}"
+}
+
+##
+# Argument parsing
+if [ "$#" -eq "0" ]; then
+	echo "usage: ${0##*/} [options] <command> [command-opts] <package|all>" >&2
+	echo "try '${0} --help'" >&2
+	exit 1
+fi
+
+for arg in "$@"; do
+	case "${arg}" in
+	(-h|-help|--help)	usage; exit 0;;
+	esac
+done
+unset arg
+
+TARGET="default"
+DEBUG="0"
+while [ "$#" -gt "0" ]; do
+	case "$1" in
+	(-v|-version|--version)	version; exit 0;;
+	(-t|-target|--target)
+		shift 1
+		if [ "$#" -eq "0" ]; then
+			echo "error: no target specified" >&2
+			exit 1
+		fi
+		TARGET="${1}"
+		shift 1
+		;;
+	(-d|-debug|--debug)
+		shift 1
+		DEBUG=1
+		;;
+	(-*)	echo "error: unknown option '${1}'" >&2
+		echo "try '${0} --help'" >&2
+		exit 1
+		;;
+	(*)	break
+		;;
+	esac
+	shift 1
+	echo "$@"
+done
+
+##
+# Done with arguments, time for setting up the enviroment for the build
+BUILDER_TOPDIR="${PWD}"
+while [ ! -z "${BUILDER_TOPDIR}" ]; do
+	[ -d "${BUILDER_TOPDIR}/.builder" ] && break
+	BUILDER_TOPDIR="${BUILDER_TOPDIR%/*}"
+done
+if [ -z "${BUILDER_TOPDIR}" ]; then
+	echo "error: current path not in a build-tree" >&2
+	exit 1
+fi
+
+##
+# This may be a little bit confusing to most.  The core issue here is the
+# ability to deal with compiled-in defaults, user-defined defaults, environment
+# settings, and target settings.
+
+# first clear the variables that would be set by the configs
+CFGDIR=
+PKGDIR=
+SRCDIR=
+ATFDIR=
+BINDIR=
+# grab the default and target settings if available, let the target settings
+# override the user-defined defaults.
+[ -f "${BUILDER_CFGDIR}/default" ] && . "${BUILDER_CFGDIR}/default"
+if [ "${TARGET}" != "default" ]; then
+	if [ ! -f "${BUILDER_CFGDIR}/${TARGET}" ]; then
+		echo "error: invalid target '${TARGET}'" >&2
+		exit 1
+	fi
+fi
+
+# set the builtin defaults based on the BUILDER_TOPDIR
+BUILDER_CFGDIR="${BUILDER_CFGDIR:-${BUILDER_TOPDIR}/.builder}"
+BUILDER_PKGDIR="${BUILDER_PKGDIR:-${BUILDER_TOPDIR}/packages}"
+BUILDER_SRCDIR="${BUILDER_SRCDIR:-${BUILDER_TOPDIR}/sources}"
+BUILDER_ATFDIR="${BUILDER_ATFDIR:-${BUILDER_TOPDIR}/artifacts}"
+BUILDER_BINDIR="${BUILDER_BINDIR:-${BUILDER_TOPDIR}/scripts}"
+BUILDER_SYSROOT="${BUILDER_SYSROOT:-${BUILDER_TOPDIR}/root}"
+
+# set the builder variables based on what was available, either defaults or
+# user-defined, this also allows the BUILDER_* defaults to be overridden by the
+# environ, possibly from within ${HOME}/.profile
+BUILDER_CFGDIR="${CFGDIR:-${BUILDER_CFGDIR}}"
+BUILDER_PKGDIR="${PKGDIR:-${BUILDER_PKGDIR}}"
+BUILDER_SRCDIR="${SRCDIR:-${BUILDER_SRCDIR}}"
+BUILDER_ATFDIR="${ATFDIR:-${BUILDER_ATFDIR}}"
+BUILDER_BINDIR="${BINDIR:-${BUILDER_BINDIR}}"
+BUILDER_SYSROOT="${SYSROOT:-${BUILDER_SYSROOT}}"
+export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR BUILDER_ATFDIR
+export BUILDER_BINDIR BUILDER_TOPDIR BUILDER_SYSROOT
+
+ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-tar.bz2}"
+export ARCHIVE_FORMAT
+
+PATH="${BUILDER_BINDIR}:${PATH}"
+export PATH
+
+# We can finally use our shared library routines
+if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
+	echo "error: cannot locate builder library" >&2
+	exit 1
+fi
+
+. "${BUILDER_BINDIR}/libbuilder.sh"
+
+# Do some basic checking regarding the target package
+if [ "$#" -eq "0" ]; then
+	error "no package specified"
+	echo "try '${0} --help'" >&2
+	exit 1
+fi
+
+NAME="${1}"
+shift
+if [ "${NAME}" != "all" ]; then
+	[ -d "${BUILDER_PKGDIR}/${NAME}" ] || die "no such package '${NAME}'"
+	[ -f "${BUILDER_PKGDIR}/${NAME}/Buildrules" ] || die "no rule to build package '${NAME}'"
+fi
+
+# if we aren't given an action then we do everything
+ACTION="archive"
+if [ "$#" -gt "0" ]; then
+	ACTION="${1}"
+	shift 1
+fi
+
+if [ ! -x "${BUILDER_BINDIR}/build-${ACTION}" ]; then
+	error "unknown action '${ACTION}'"
+	echo "try '${0} --help'" >&2
+	exit 1
+fi
+
+# info is a special case
+if [ "${ACTION}" = "info" ]; then
+	exec "${BUILDER_BINDIR}/build-info" "${NAME}" "${@}"
+fi
+
+# build the Makefile
+trap cleanup EXIT
+BUILDER_MAKEFILE="$(mktemp /tmp/builder_makefile.XXXXXXXX)"
+if [ ! -f "${BUILDER_MAKEFILE}" ]; then
+	die "failed to generate build dependencies"
+fi
+export BUILDER_MAKEFILE
+build-makedeps || die "failed generate build dependencies"
+
+MAKE_OPTS="-j8"
+export MAKE_OPTS
+
+# exec out to make with the appropriate Makefile
+make ${MAKE_OPTS} -r -f "${BUILDER_MAKEFILE}" "${NAME}_${ACTION}"

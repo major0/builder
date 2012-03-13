@@ -1,0 +1,78 @@
+#!/bin/sh
+
+if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
+	echo "error: cannot locate builder library" >&2
+	exit 1
+fi
+
+. "${BUILDER_BINDIR}/libbuilder.sh"
+
+import "${1}"
+
+build_sync_git()
+{
+	GIT_URI="${1%%\?*}"
+	GIT_TAG="${1##*\?}"
+
+	# We want to avoid avoid copying the repository and all of it's history
+	# in order to perform a single build, unfortunately git does not give a
+	# clear-cut approach to checkout out a specific tag or the head of a
+	# specific branch, instead we have to jump through some hoops.
+	if [ ! -d "${S}/.git" ]; then
+		[ -d "${S}" ] && rm -rf "${S}"
+		git clone --depth 1 "${GIT_URI}" "${S}" || die "failed to clone git source at '${GIT_URI}'"
+	fi
+	if [ "${GIT_TAG}" != "${GIT_URI}" ]; then
+		cd "${S}" || die "failed to change working directory to '${S}'"
+		git fetch --depth 1 "${GIT_URI}" "${GIT_TAG}" || die "failed to fetch git branch/tag '${GIT_TAG}'"
+		git checkout "${GIT_TAG}" || die "failed to checkout git branch/tag '${GIT_TAG}'"
+	fi
+}
+
+build_sync_svn()
+{
+	if [ ! -d "${S}/.svn" ]; then
+		[ -d "${S}" ] && rm -rf "${S}"
+		svn checkout "${1}" "${S}" || die "failed to checkout svn source at '${1}'"
+	fi
+}
+
+[ -d "${D}" ] || mkdir -p "${D}"
+[ -d "${S}" ] || mkdir -p "${S}"
+[ -d "${L}" ] || mkdir -p "${L}"
+if [ -f "${L}/sync.log" ]; then
+	rm "${L}/sync.log" || exit 1
+fi
+touch "${L}/sync.log"
+
+if [ -d "${BUILDER_PKGDIR}/${NAME}/source" ]; then
+	if [ "$(command -v rsync)" ]; then
+		if ! rsync -rav --delete "${BUILDER_PKGDIR}/${NAME}/source/" "${S}"; then
+			die "failed to sync source to '${S}'"
+		fi
+	else
+		if ! cp -vadpR "${BUILDER_PKGDIR}/${NAME}/source" "${S}"; then
+			die "failed to copy source to '${S}'"
+		fi
+	fi >> "${L}/sync.log" 2>&1
+else
+	# FIXME this stuff needs a lot of work
+	case "${SOURCE_URI}" in
+	(svn://*)	build_sync_svn "${SOURCE_URI}";;
+	(git://*)	build_sync_git "${SOURCE_URI}";;
+	# Everything else is death
+	(*)		die "do not know how to handle '${SOURCE_URI}'"
+	esac >> "${L}/sync.log" 2>&1
+fi
+
+# FIXME wrap up the patch command with something more functional
+if [ ! -z "${PATCHES}" ]; then
+	for patch in ${PATCHES}; do
+		echo "${NAME}: applying patch '${patch}'" | tee -a "${L}/sync.log"
+		if ! patch -l -t -d "${S}" -p1 < "${F}/${NAME}-${VERSION}-${patch}.patch"; then
+			exit 1
+		fi >> "${L}/sync.log" 2>&1
+	done
+fi
+
+date --utc > "${L}/.synced"

@@ -1,0 +1,22 @@
+#!/bin/sh
+
+if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
+	echo "error: cannot locate builder library" >&2
+	exit 1
+fi
+
+. "${BUILDER_BINDIR}/libbuilder.sh"
+
+import "${1}"
+
+for file in .synced .compiled .installed; do
+	[ -f "${L}/${file}" ] && rm -f "${L}/${file}"
+done
+
+if [ -d "${BUILDER_PKGDIR}/${NAME}/build" ]; then
+	rm -rf "${BUILDER_PKGDIR}/${NAME}/build"
+fi
+
+if [ -d "${BUILDER_PKGDIR}/${NAME}/install" ]; then
+	rm -rf "${BUILDER_PKGDIR}/${NAME}/install"
+fi

@@ -1,0 +1,87 @@
+#!/bin/sh
+
+if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
+	echo "error: cannot locate builder library" >&2
+	exit 1
+fi
+
+. "${BUILDER_BINDIR}/libbuilder.sh"
+
+PACKAGES=
+PACKAGES_SYNC=
+PACKAGES_CLEAN=
+PACKAGES_COMPILE=
+PACKAGES_ARCHIVE=
+PACKAGES_INSTALL=
+for package in ${BUILDER_PKGDIR}/*/Buildrules; do
+	[ -f "${package}" ] || continue
+	package="${package%%/Buildrules}"
+	package="${package##*/}"
+	PACKAGES="${PACKAGES} ${package}"
+	PACKAGES_SYNC="${PACKAGES_SYNC} ${package}_sync"
+	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package}_clean"
+	PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package}_compile"
+	PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package}_archive"
+	PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package}_install"
+done
+
+cat >"${BUILDER_MAKEFILE}" <<EOF
+##
+# Some generic catchall rules
+all: ${PACKAGES_ARCHIVE}
+all_sync: ${PACKAGES_SYNC}
+all_clean: ${PACKAGES_CLEAN}
+all_compile: ${PACKAGES_COMPILE}
+all_archive: ${PACKAGES_ARCHIVE}
+all_install: ${PACKAGES_INSTALL}
+all_makedeps:
+
+EOF
+
+for package in ${PACKAGES}; do
+	import "${package}"
+
+	package_archive="${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+	package_rule="${BUILDER_PKGDIR}/${NAME}/Buildrules"
+	package_logdir="${BUILDER_PKGDIR}/${NAME}/log"
+	package_install="${package_logdir}/.installed"
+	package_compile="${package_logdir}/.compiled"
+	package_sync="${package_logdir}/.synced"
+	# FIXME we need to deal with package_source as well
+
+	package_deps=
+	for package in ${BDEPENDS}; do
+		package_deps="${package_deps} ${BUILDER_PKGDIR}/${package}/log/.installed"
+	done
+
+cat <<EOF
+##
+# ${NAME} - ${DESCRIPTION}
+${NAME}: ${package_archive}
+${NAME}_install: ${package_install}
+${NAME}_archive: ${package_archive}
+${NAME}_compile: ${package_compile}
+${NAME}_sync: ${package_sync}
+${NAME}_makedeps:
+${NAME}_clean:
+	@echo "${NAME}: cleaning"
+	@build-clean ${NAME}
+
+${package_install}: ${package_archive}
+	@echo "${NAME}: installing"
+	@build-install ${NAME}
+
+${package_archive}: ${package_compile}
+	@echo "${NAME}: archiving"
+	@build-archive ${NAME}
+
+${package_compile}: ${package_sync}${package_deps}
+	@echo "${NAME}: compiling"
+	@build-compile ${NAME}
+
+${package_sync}: ${package_rule}
+	@echo "${NAME}: syncing"
+	@build-sync ${NAME}
+
+EOF
+done >> "${BUILDER_MAKEFILE}"

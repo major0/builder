@@ -1,0 +1,60 @@
+#!/bin/sh
+
+if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
+	echo "error: cannot locate builder library" >&2
+	exit 1
+fi
+
+. "${BUILDER_BINDIR}/libbuilder.sh"
+
+import "${1}"
+shift
+
+# The info action handles a collection of options.
+if [ "$#" -eq "0" ]; then
+	# Default to displaying a package summary
+	set -- --summary
+fi
+case "${1}" in
+(-b|-build-deps|--build-deps)
+	[ -z "${BDEPENDS}" ] || echo "${BDEPENDS}";;
+(-d|-depends|--depends)
+	[ -z "${RDEPENDS}" ] || echo "${RDEPENDS}";;
+(-n|-name|--name)
+	echo "${NAME}";;
+(-d|-description|--description)
+	echo "${DESCRIPTION}";;
+(-v|--version|--version)
+	echo "${VERSION}";;
+(-u|-source-uri|--src-uri)
+	echo "${SOURCE_URI}";;
+(-s|-summary|--summary)
+	echo "Name:		${NAME}"
+	echo "Version:	${VERSION}"
+	if [ -d "${BUILDER_TOPDIR}/packages/${NAME}/souce" ]; then
+		echo "Source:		${BUILDER_TOPDIR}/packages/${NAME}/souce"
+	else
+		echo "Source:		${SOURCE_URI}"
+	fi
+	if [ ! -z "${RDEPENDS}" ]; then
+		echo "Depends:		${RDEPENDS}"
+	fi
+	if [ ! -z "${BDEPENDS}" ]; then
+		echo "BuildDeps:	${BDEPENDS}"
+	fi
+
+	cat <<-EOF
+
+	${DESCRIPTION}
+	EOF
+	;;
+
+(-*)	error "unknown info request '${1}'"
+	echo "try '${0##*/} --help'" >&2
+	exit 1
+	;;
+(*)	error "unhandled argument '${1}'"
+	echo "try '${0##*/} --help'" >&2
+	exit 1
+	;;
+esac

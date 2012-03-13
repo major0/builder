@@ -1,0 +1,33 @@
+#!/bin/sh
+
+if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
+	echo "error: cannot locate builder library" >&2
+	exit 1
+fi
+
+. "${BUILDER_BINDIR}/libbuilder.sh"
+
+pkg_compile()
+{
+	# FIXME these defaults need moved elsewhere
+	if [ -f "configure" ]; then
+		./configure	--prefix="/usr" --mandir=/usr/share/man	\
+				--docdir=/usr/share/doc			\
+				--sysconfdir=/etc
+	fi
+
+	# FIXME we need a bunch of make options in here
+	make && make DESTDIR="${D}" install
+}
+
+import "${1}"
+
+[ -d "${D}" ] || mkdir -p "${D}"
+[ -d "${S}" ] || mkdir -p "${S}"
+[ -d "${L}" ] || mkdir -p "${L}"
+if [ -f "${L}/compile.log" ]; then
+	rm "${L}/compile.log" || exit 1
+fi
+touch "${L}/compile.log"
+
+(cd "${S}" && pkg_compile > "${L}/compile.log" 2>&1 && date --utc > ${L}/.compiled)
