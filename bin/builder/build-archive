@@ -1,11 +1,4 @@
-#!/bin/sh
-
-if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
-	echo "error: cannot locate builder library" >&2
-	exit 1
-fi
-
-. "${BUILDER_BINDIR}/libbuilder.sh"
+#!/usr/bin/env build
 
 import "${1}"
 
@@ -28,3 +21,5 @@ case "${ARCHIVE_FORMAT}" in
 esac
 
 cd "${D}" && tar c . | ${ARCHIVE_COMPRESSOR} > "${ARCHIVE_TMP}" && mv "${ARCHIVE_TMP}" "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+
+# vim: filetype=sh

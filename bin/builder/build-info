@@ -1,11 +1,4 @@
-#!/bin/sh
-
-if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
-	echo "error: cannot locate builder library" >&2
-	exit 1
-fi
-
-. "${BUILDER_BINDIR}/libbuilder.sh"
+#!/usr/bin/env build
 
 import "${1}"
 shift
@@ -58,3 +51,5 @@ case "${1}" in
 	exit 1
 	;;
 esac
+
+# vim: filetype=sh

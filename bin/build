@@ -72,12 +72,80 @@ cleanup()
 	[ -f "${BUILDER_MAKEFILE}" ] && rm -f "${BUILDER_MAKEFILE}"
 }
 
+## error <message>
+# displays the supplied <message> on stderr
+error()
+{
+	echo "error: $*" >&2
+}
+
+## die <message>
+# display the supplied <message> and exit with an error
+die()
+{
+	error "$*"
+	exit 1
+}
+
+## import <package>
+# import a package into the current program space
+import()
+{
+	[ -d "${BUILDER_PKGDIR}/${1}" ] || die "no such package '${1}'"
+	[ -f "${BUILDER_PKGDIR}/${1}/Buildrules" ] || die "no rule to build package '${1}'"
+
+	# Set the name so it can be used in the Buildrules
+	NAME="${1}"
+
+	# Clear all the pkg variables that we depend on
+	VERSION=
+	DESCRIPTION=
+	SOURCE_URI=
+	PATCHES=
+	BDEPENDS=
+	RDEPENDS=
+
+	. "${BUILDER_PKGDIR}/${NAME}/Buildrules"
+
+	[ "${NAME}" = "${1}" ] || die "Buildrules can not set the package name"
+	[ -z "${VERSION}" ] && die "missing version in '${NAME}'"
+	[ -z "${DESCRIPTION}" ] && die "missing description in '${NAME}'"
+
+	if [ ! -d "${BUILDER_PKGDIR}/${NAME}/source" ]; then
+		if [ -z "${SOURCE_URI}" ]; then
+			die "SOURCE_URI undefined and no source directory in '${NAME}'"
+		fi
+	fi
+
+	D="${BUILDER_PKGDIR}/${NAME}/install"
+	S="${BUILDER_PKGDIR}/${NAME}/build/${NAME}-${VERSION}"
+	F="${BUILDER_PKGDIR}/${NAME}/files"
+	L="${BUILDER_PKGDIR}/${NAME}/log"
+}
+
 ##
 # Argument parsing
 if [ "$#" -eq "0" ]; then
 	echo "usage: ${0##*/} [options] <command> [command-opts] <package|all>" >&2
 	echo "try '${0} --help'" >&2
 	exit 1
+fi
+
+##
+# Check to see if we are wrapping a sub-command
+BUILD_COMMAND=
+if [ -f "${1}" ]; then
+	case "${1}" in
+	(*build-*)
+		BUILD_COMMAND="${1}"
+		shift
+		. "${BUILD_COMMAND}"
+		# exit with the exit status of the last command from within the
+		# sub-script.  This is normal shell behavior, we are just
+		# making it explicit.
+		exit $?
+		;;
+	esac
 fi
 
 for arg in "$@"; do
@@ -138,7 +206,7 @@ CFGDIR=
 PKGDIR=
 SRCDIR=
 ATFDIR=
-BINDIR=
+LIBDIR=
 # grab the default and target settings if available, let the target settings
 # override the user-defined defaults.
 [ -f "${BUILDER_CFGDIR}/default" ] && . "${BUILDER_CFGDIR}/default"
@@ -154,7 +222,7 @@ BUILDER_CFGDIR="${BUILDER_CFGDIR:-${BUILDER_TOPDIR}/.builder}"
 BUILDER_PKGDIR="${BUILDER_PKGDIR:-${BUILDER_TOPDIR}/packages}"
 BUILDER_SRCDIR="${BUILDER_SRCDIR:-${BUILDER_TOPDIR}/sources}"
 BUILDER_ATFDIR="${BUILDER_ATFDIR:-${BUILDER_TOPDIR}/artifacts}"
-BUILDER_BINDIR="${BUILDER_BINDIR:-${BUILDER_TOPDIR}/scripts}"
+BUILDER_LIBDIR="${BUILDER_LIBDIR:-${BUILDER_TOPDIR}/bin/builder}"
 BUILDER_SYSROOT="${BUILDER_SYSROOT:-${BUILDER_TOPDIR}/root}"
 
 # set the builder variables based on what was available, either defaults or
@@ -164,24 +232,16 @@ BUILDER_CFGDIR="${CFGDIR:-${BUILDER_CFGDIR}}"
 BUILDER_PKGDIR="${PKGDIR:-${BUILDER_PKGDIR}}"
 BUILDER_SRCDIR="${SRCDIR:-${BUILDER_SRCDIR}}"
 BUILDER_ATFDIR="${ATFDIR:-${BUILDER_ATFDIR}}"
-BUILDER_BINDIR="${BINDIR:-${BUILDER_BINDIR}}"
+BUILDER_LIBDIR="${LIBDIR:-${BUILDER_LIBDIR}}"
 BUILDER_SYSROOT="${SYSROOT:-${BUILDER_SYSROOT}}"
 export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR BUILDER_ATFDIR
-export BUILDER_BINDIR BUILDER_TOPDIR BUILDER_SYSROOT
+export BUILDER_LIBDIR BUILDER_TOPDIR BUILDER_SYSROOT
 
 ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-tar.bz2}"
 export ARCHIVE_FORMAT
 
-PATH="${BUILDER_BINDIR}:${PATH}"
+PATH="${BUILDER_LIBDIR}:${PATH}"
 export PATH
-
-# We can finally use our shared library routines
-if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
-	echo "error: cannot locate builder library" >&2
-	exit 1
-fi
-
-. "${BUILDER_BINDIR}/libbuilder.sh"
 
 # Do some basic checking regarding the target package
 if [ "$#" -eq "0" ]; then
@@ -204,7 +264,7 @@ if [ "$#" -gt "0" ]; then
 	shift 1
 fi
 
-if [ ! -x "${BUILDER_BINDIR}/build-${ACTION}" ]; then
+if [ ! -x "${BUILDER_LIBDIR}/build-${ACTION}" ]; then
 	error "unknown action '${ACTION}'"
 	echo "try '${0} --help'" >&2
 	exit 1
@@ -212,7 +272,7 @@ fi
 
 # info is a special case
 if [ "${ACTION}" = "info" ]; then
-	exec "${BUILDER_BINDIR}/build-info" "${NAME}" "${@}"
+	exec "${BUILDER_LIBDIR}/build-info" "${NAME}" "${@}"
 fi
 
 # build the Makefile
@@ -222,8 +282,11 @@ if [ ! -f "${BUILDER_MAKEFILE}" ]; then
 	die "failed to generate build dependencies"
 fi
 export BUILDER_MAKEFILE
-build-makedeps || die "failed generate build dependencies"
+"${BUILDER_LIBDIR}/build-makedeps" || die "failed generate build dependencies"
 
+# FIXME not the right way to handle this, we should be only setting this if the
+# target leaves it empty, and we should stick with the norm of setting it to
+# num_cpus+1
 MAKE_OPTS="-j8"
 export MAKE_OPTS
 

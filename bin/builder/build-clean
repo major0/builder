@@ -1,11 +1,4 @@
-#!/bin/sh
-
-if [ ! -f "${BUILDER_BINDIR}/libbuilder.sh" ]; then
-	echo "error: cannot locate builder library" >&2
-	exit 1
-fi
-
-. "${BUILDER_BINDIR}/libbuilder.sh"
+#!/usr/bin/env build
 
 import "${1}"
 
@@ -20,3 +13,5 @@ fi
 if [ -d "${BUILDER_PKGDIR}/${NAME}/install" ]; then
 	rm -rf "${BUILDER_PKGDIR}/${NAME}/install"
 fi
+
+# vim: filetype=sh
