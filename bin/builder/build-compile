@@ -6,11 +6,12 @@ pkg_compile()
 	if [ -f "configure" ]; then
 		./configure	--prefix="/usr" --mandir=/usr/share/man	\
 				--docdir=/usr/share/doc			\
-				--sysconfdir=/etc
+				--sysconfdir=/etc			\
+				${CONFIG_OPTS}
 	fi
 
 	# FIXME we need a bunch of make options in here
-	make && make DESTDIR="${D}" install
+	make ${MAKE_OPTS} && make DESTDIR="${D}" install
 }
 
 import "${1}"
