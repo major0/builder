@@ -56,7 +56,9 @@ build_sync_http()
 	esac
 
 	if [ -d "${S}/${NAME}-${VERSION}" ]; then
-		mv "${S}/${NAME}-${VERSION}"/* "${S}/"
+		(cd "${S}" && find "${NAME}-${VERSION}" -maxdepth 1 \
+			! -name "${NAME}-${VERSION}" -a -print0 \
+			| xargs -0i mv -f "${S}/{}" "${S}/")
 		rmdir "${S}/${NAME}-${VERSION}"
 	fi
 }
