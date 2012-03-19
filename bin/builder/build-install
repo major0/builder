@@ -1,5 +1,6 @@
 #!/usr/bin/env build
 
+echo "installing: ${1}"
 import "${1}"
 
 ARCHIVE_FORMAT="tar.bz2"

@@ -1,5 +1,7 @@
 #!/usr/bin/env build
 
+echo "compiling: ${1}"
+
 # FIXME the CHOST is part of the BUILDER environment and should be handled
 # accordingly
 CHOST="i586-uplogix-linux-gnu"

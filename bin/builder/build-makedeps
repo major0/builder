@@ -57,23 +57,18 @@ ${NAME}_compile: ${package_compile}
 ${NAME}_sync: ${package_sync}
 ${NAME}_makedeps:
 ${NAME}_clean:
-	@echo "${NAME}: cleaning"
 	@build-clean ${NAME}
 
 ${package_install}: ${package_archive}
-	@echo "${NAME}: installing"
 	@build-install ${NAME}
 
 ${package_archive}: ${package_compile}
-	@echo "${NAME}: archiving"
 	@build-archive ${NAME}
 
 ${package_compile}: ${package_sync}${package_deps}
-	@echo "${NAME}: compiling"
 	@build-compile ${NAME}
 
 ${package_sync}: ${package_rule}
-	@echo "${NAME}: syncing"
 	@build-sync ${NAME}
 
 EOF
