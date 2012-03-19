@@ -1,10 +1,21 @@
 #!/usr/bin/env build
 
+# FIXME the CHOST is part of the BUILDER environment and should be handled
+# accordingly
+CHOST="i586-uplogix-linux-gnu"
+CROSS_COMPILE="${CHOST}-"
+ARCH="x86"
+export ARCH CROSS_COMPILE CHOST
+
+PATH="${BUILDER_SYSROOT}/usr/bin:${PATH}"
+export PATH
+
 pkg_compile()
 {
 	# FIXME these defaults need moved elsewhere
 	if [ -f "configure" ]; then
-		./configure	--prefix="/usr" --mandir=/usr/share/man	\
+		./configure	--host="${CHOST}"			\
+				--prefix="/usr" --mandir=/usr/share/man	\
 				--docdir=/usr/share/doc			\
 				--sysconfdir=/etc			\
 				${CONFIG_OPTS}
