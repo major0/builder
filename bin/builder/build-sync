@@ -45,8 +45,8 @@ build_sync_http()
 	fi
 
 	case "${HTTP_FILE}" in
-	(*.tar.bz2|*.tbz2)
-		bzip -dc "${BUILDER_SRCDIR}/${HTTP_FILE}" | tar x -C "${S}";;
+	(*.tar.bz|*.tbz|*.tar.bz2|*.tbz2)
+		bzip2 -dc "${BUILDER_SRCDIR}/${HTTP_FILE}" | tar x -C "${S}";;
 	(*.tar.[Zz]|*.tz)
 		gzip -dc "${BUILDER_SRCDIR}/${HTTP_FILE}" | tar x -C "${S}";;
 	(*.tar.gz|*.tgz)
@@ -80,14 +80,16 @@ if [ -d "${BUILDER_PKGDIR}/${NAME}/source" ]; then
 	fi >> "${L}/sync.log" 2>&1
 else
 	# FIXME this stuff needs a lot of work
-	case "${SOURCE_URI}" in
-	(svn://*)	build_sync_svn "${SOURCE_URI}";;
-	(git://*)	build_sync_git "${SOURCE_URI}";;
-	(http://*)	build_sync_http "${SOURCE_URI}";;
-	(ftp://*)	build_sync_http "${SOURCE_URI}";;
-	# Everything else is death
-	(*)		die "do not know how to handle '${SOURCE_URI}'"
-	esac >> "${L}/sync.log" 2>&1
+	for url in ${SOURCE_URI}; do
+		case "${url}" in
+		(svn://*)	build_sync_svn "${url}";;
+		(git://*)	build_sync_git "${url}";;
+		(http://*)	build_sync_http "${url}";;
+		(ftp://*)	build_sync_http "${url}";;
+		# Everything else is death
+		(*)		die "do not know how to handle '${url}'"
+		esac >> "${L}/sync.log" 2>&1
+	done
 fi
 
 # FIXME wrap up the patch command with something more functional
