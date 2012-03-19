@@ -9,6 +9,8 @@ CROSS_COMPILE="${CHOST}-"
 ARCH="x86"
 export ARCH CROSS_COMPILE CHOST
 
+unset MAKEFLAGS
+
 PATH="${BUILDER_SYSROOT}/usr/bin:${PATH}"
 export PATH
 
