@@ -35,6 +35,6 @@ if [ -f "${L}/compile.log" ]; then
 fi
 touch "${L}/compile.log"
 
-(cd "${S}" && pkg_compile > "${L}/compile.log" 2>&1 && date --utc > ${L}/.compiled)
+(set -e;cd "${S}" && pkg_compile > "${L}/compile.log" 2>&1 && date --utc > ${L}/.compiled)
 
 # vim: filetype=sh

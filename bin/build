@@ -123,6 +123,8 @@ import()
 	L="${BUILDER_PKGDIR}/${NAME}/log"
 }
 
+set -e
+
 ##
 # Argument parsing
 if [ "$#" -eq "0" ]; then

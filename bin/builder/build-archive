@@ -2,24 +2,35 @@
 
 import "${1}"
 
-ARCHIVE_TMP=
+ARCHIVE_TMP1=
+ARCHIVE_TMP2=
 cleanup()
 {
-	[ -f "${ARCHIVE_TMP}" ] && rm -f "${ARCHIVE_TMP}"
+	[ -f "${ARCHIVE_TMP1}" ] && rm -f "${ARCHIVE_TMP1}"
+	[ -f "${ARCHIVE_TMP2}" ] && rm -f "${ARCHIVE_TMP2}"
+	exit 0
 }
 trap cleanup EXIT
+set -e
 
+ARCHIVE_TMP1="$(mktemp /tmp/${NAME}-${VERSION}.XXXXXXXX)"
+ARCHIVE_TMP2="$(mktemp /tmp/${NAME}-${VERSION}.XXXXXXXX)"
 
-ARCHIVE_TMP="$(mktemp /tmp/${NAME}-${VERSION}.XXXXXXXX)"
-
-[ -f "${ARCHIVE_TMP}" ] || die "failed to create temporary archive for package '${NAME}'"
+[ -f "${ARCHIVE_TMP1}" ] || die "failed to create temporary archive for package '${NAME}'"
+[ -f "${ARCHIVE_TMP2}" ] || die "failed to create temporary archive for package '${NAME}'"
 
 case "${ARCHIVE_FORMAT}" in
-(tbz2|tar.bz2)	ARCHIVE_COMPRESSOR="bzip2 -c";;
-(tgz|tar.gz)	ARCHIVE_COMPRESSOR="gzip -c";;
+(tbz2|tar.bz2)	ARCHIVE_COMPRESSOR="bzip2 -cv";;
+(tgz|tar.gz)	ARCHIVE_COMPRESSOR="gzip -cv";;
 (*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
 esac
 
-cd "${D}" && tar c . | ${ARCHIVE_COMPRESSOR} > "${ARCHIVE_TMP}" && mv "${ARCHIVE_TMP}" "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+cd "${D}"
+tar -cvf "${ARCHIVE_TMP1}" .  > "${L}/archive.log" 2>&1
+${ARCHIVE_COMPRESSOR} "${ARCHIVE_TMP1}" > "${ARCHIVE_TMP2}" 2>> "${L}/archive.log"
+if [ -f "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
+	rm -f "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+fi
+mv -v "${ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" >> "${L}/archive.log" 2>&1
 
 # vim: filetype=sh
