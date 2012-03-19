@@ -37,8 +37,10 @@ import "${1}"
 if [ -f "${L}/compile.log" ]; then
 	rm "${L}/compile.log" || exit 1
 fi
-touch "${L}/compile.log"
+echo "== ENV ==" > "${L}/compile.log"
+env >> "${L}/compile.log"
+echo "=========" >> "${L}/compile.log"
 
-(set -e;cd "${S}" && pkg_compile > "${L}/compile.log" 2>&1 && date --utc > ${L}/.compiled)
+(set -e;cd "${S}" && pkg_compile >> "${L}/compile.log" 2>&1 && date --utc > ${L}/.compiled)
 
 # vim: filetype=sh
