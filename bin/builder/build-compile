@@ -9,6 +9,11 @@ CROSS_COMPILE="${CHOST}-"
 ARCH="x86"
 export ARCH CROSS_COMPILE CHOST
 
+# FIXME xcb sucks my will to live
+PYTHONPATH="${BUILDER_SYSROOT}/usr/lib/python2.7/dist-packages"
+export PYTHONPATH
+
+# Don't pass along the builder jobcontrol data to child processes
 unset MAKEFLAGS
 
 PATH="${BUILDER_SYSROOT}/usr/bin:${PATH}"
@@ -30,6 +35,22 @@ pkg_compile()
 }
 
 import "${1}"
+
+# define the toolchain
+if [ -z "${TOOLCHAIN}" ]; then
+	CC="${CROSS_COMPILE}gcc"
+	CXX="${CROSS_COMPILE}g++"
+	LD="${CROSS_COMPILE}ld"
+	AR="${CROSS_COMPILE}ar"
+	STRIP="${CROSS_COMPILE}strip"
+	RANDLIB="${CROSS_COMPILE}ranlib"
+	export CC CXX LD AR STRIP RANLIB
+fi
+
+# pkgconfig can be a right pita...
+PKG_CONFIG_LIBDIR="${BUILDER_SYSROOT}/usr/share/pkgconfig:${BUILDER_SYSROOT}/usr/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR PKG_CONFIG_PATH
+export PKG_CONFIG_SYSROOT_DIR="${BUILDER_SYSROOT}"
 
 [ -d "${D}" ] || mkdir -p "${D}"
 [ -d "${S}" ] || mkdir -p "${S}"

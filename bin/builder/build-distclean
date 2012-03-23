@@ -1,12 +1,7 @@
 #!/usr/bin/env build
 
-echo "cleaning: ${1}"
+echo "dist-cleaning: ${1}"
 import "${1}"
-
-if [ ! -z "${TOOLCHAIN}" ]; then
-	rm -f "${L}/.installed"
-	exit 0
-fi
 
 for dir in "${L}" "${S}" "${D}"; do
 	if [ -d "${dir}" ]; then

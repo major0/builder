@@ -6,6 +6,7 @@ PACKAGES_CLEAN=
 PACKAGES_COMPILE=
 PACKAGES_ARCHIVE=
 PACKAGES_INSTALL=
+PACKAGES_DISTCLEAN=
 for package in ${BUILDER_PKGDIR}/*/Buildrules; do
 	[ -f "${package}" ] || continue
 	package="${package%%/Buildrules}"
@@ -16,6 +17,7 @@ for package in ${BUILDER_PKGDIR}/*/Buildrules; do
 	PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package}_compile"
 	PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package}_archive"
 	PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package}_install"
+	PACKAGES_DISTCLEAN="${PACKAGES_DISTCLEAN} ${package}_distclean"
 done
 
 cat >"${BUILDER_MAKEFILE}" <<EOF
@@ -23,16 +25,33 @@ cat >"${BUILDER_MAKEFILE}" <<EOF
 # Some generic catchall rules
 all: ${PACKAGES_ARCHIVE}
 all_sync: ${PACKAGES_SYNC}
-all_clean: ${PACKAGES_CLEAN}
+all_clean: ${PACKAGES_CLEAN} sysroot_clean
+all_distclean: ${PACKAGES_DISTCLEAN} sysroot_clean artifacts_clean
 all_compile: ${PACKAGES_COMPILE}
 all_archive: ${PACKAGES_ARCHIVE}
 all_install: ${PACKAGES_INSTALL}
 all_makedeps:
 
+sysroot_clean:
+	@if [ -d "${BUILDER_SYSROOT}" ]; then echo cleaning: sysroot;rm -rf "${BUILDER_SYSROOT}";fi
+sources_clean:
+	@if [ -d "${BUILDER_SRCDIR}" ]; then echo cleaning: sources;rm -rf "${BUILDER_SRCDIR}";fi
+artifacts_clean:
+	@if [ -d "${BUILDER_ATFDIR}" ]; then echo cleaning: artifacts;rm -rf "${BUILDER_ATFDIR}";fi
+
 EOF
 
 for package in ${PACKAGES}; do
+	# If the package defines itself as a toolchain component then we unset
+	# TOOLCHAIN, else we set TOOLCHAIN to gcc to be included in the
+	# BDEPENDS
+	TOOLCHAIN=
 	import "${package}"
+	if [ -z "${TOOLCHAIN}" ]; then
+		TOOLCHAIN="gcc"
+	else
+		TOOLCHAIN=
+	fi
 
 	package_archive="${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
 	package_rule="${BUILDER_PKGDIR}/${NAME}/Buildrules"
@@ -43,7 +62,7 @@ for package in ${PACKAGES}; do
 	# FIXME we need to deal with package_source as well
 
 	package_deps=
-	for package in ${BDEPENDS}; do
+	for package in ${TOOLCHAIN} ${BDEPENDS}; do
 		package_deps="${package_deps} ${BUILDER_PKGDIR}/${package}/log/.installed"
 	done
 
@@ -58,6 +77,8 @@ ${NAME}_sync: ${package_sync}
 ${NAME}_makedeps:
 ${NAME}_clean:
 	@build-clean ${NAME}
+${NAME}_distclean:
+	@build-distclean ${NAME}
 
 ${package_install}: ${package_archive}
 	@build-install ${NAME}
