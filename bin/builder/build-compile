@@ -41,6 +41,8 @@ echo "== ENV ==" > "${L}/compile.log"
 env >> "${L}/compile.log"
 echo "=========" >> "${L}/compile.log"
 
-(set -e;cd "${S}" && pkg_compile >> "${L}/compile.log" 2>&1 && date --utc > ${L}/.compiled)
+cd "${S}"
+pkg_compile >> "${L}/compile.log" 2>&1
+date --utc > "${L}/.compiled"
 
 # vim: filetype=sh
