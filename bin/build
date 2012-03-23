@@ -252,18 +252,15 @@ if [ "$#" -eq "0" ]; then
 	exit 1
 fi
 
-NAME="${1}"
-shift
-if [ "${NAME}" != "all" ]; then
-	[ -d "${BUILDER_PKGDIR}/${NAME}" ] || die "no such package '${NAME}'"
-	[ -f "${BUILDER_PKGDIR}/${NAME}/Buildrules" ] || die "no rule to build package '${NAME}'"
-fi
-
 # if we aren't given an action then we do everything
 ACTION="archive"
 if [ "$#" -gt "0" ]; then
 	ACTION="${1}"
 	shift 1
+fi
+
+if [ "${ACTION}" = "all" ]; then
+	ACTION="install"
 fi
 
 if [ ! -x "${BUILDER_LIBDIR}/build-${ACTION}" ]; then
@@ -272,9 +269,36 @@ if [ ! -x "${BUILDER_LIBDIR}/build-${ACTION}" ]; then
 	exit 1
 fi
 
+if [ "$#" -lt "1" ]; then
+	NAME="all"
+	if [ "${PWD##${BUILDER_PKGDIR}/}" != "${PWD}" ]; then
+		NAME="${PWD##${BUILDER_PKGDIR}/}"
+		NAME="${NAME%%*/}"
+	fi
+	set -- "${NAME}"
+fi
+
+if [ "${1}" != "all" ]; then
+	# sort/uniq the argument list
+	set -- $(for package in "$@"; do echo "${package}" ; done | sort | uniq)
+	for package in "$@"; do
+		# If all is specified anywhere in the argument list than just discard
+		# everything else.
+		if [ "${package}" = "all" ]; then
+			exec "${0}" "${ACTION}" "${package}"
+		fi
+		[ -d "${BUILDER_PKGDIR}/${package}" ] || die "no such package '${package}'"
+		[ -f "${BUILDER_PKGDIR}/${package}/Buildrules" ] || die "no rule to build package '${package}'"
+	done
+fi
+
 # info is a special case
+# FIXME this is semi-busted
 if [ "${ACTION}" = "info" ]; then
-	exec "${BUILDER_LIBDIR}/build-info" "${NAME}" "${@}"
+	for package in "$@"; do
+		"${BUILDER_LIBDIR}/build-info" "${package}" "${@}"
+	done
+	exit
 fi
 
 # build the Makefile
@@ -292,5 +316,12 @@ export BUILDER_MAKEFILE
 MAKE_OPTS="-j8"
 export MAKE_OPTS
 
+packages=
+for package in "$@"; do
+	packages="${packages} ${package}_${ACTION}"
+done
+set -- ${packages}
+unset packages
+
 # exec out to make with the appropriate Makefile
-make ${MAKE_OPTS} -r -f "${BUILDER_MAKEFILE}" "${NAME}_${ACTION}"
+exec make ${MAKE_OPTS} -r -f "${BUILDER_MAKEFILE}" "${@}"
