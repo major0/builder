@@ -118,6 +118,7 @@ import()
 	fi
 
 	D="${BUILDER_PKGDIR}/${NAME}/install"
+	W="${BUILDER_PKGDIR}/${NAME}/build"
 	S="${BUILDER_PKGDIR}/${NAME}/build/${NAME}-${VERSION}"
 	F="${BUILDER_PKGDIR}/${NAME}/files"
 	L="${BUILDER_PKGDIR}/${NAME}/log"

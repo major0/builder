@@ -8,7 +8,7 @@ if [ ! -z "${TOOLCHAIN}" ]; then
 	exit 0
 fi
 
-for dir in "${L}" "${S}" "${D}"; do
+for dir in "${L}" "${W}" "${D}"; do
 	if [ -d "${dir}" ]; then
 		rm -rf "${dir}" &
 	fi
