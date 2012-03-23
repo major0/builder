@@ -17,6 +17,6 @@ case "${ARCHIVE_FORMAT}" in
 esac
 
 cd "${BUILDER_SYSROOT}" && ${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" | tar x
-date --utc > "${L}/.installed"
+cp -a "${L}/.compiled" "${L}/.installed"
 
 # vim: filetype=sh
