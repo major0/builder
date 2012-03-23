@@ -36,6 +36,9 @@ build_sync_http()
 	HTTP_FILE="${1##*/}"
 	HTTP_FILE="${HTTP_FILE%%\?*}"
 
+	if [ ! -d "${BUILDER_SRCDIR}" ]; then
+		mkdir -p "${BUILDER_SRCDIR}"
+	fi
 	if [ ! -f "${BUILDER_SRCDIR}/${HTTP_FILE}" ]; then
 		HTTP_TMP="$(mktemp /tmp/builder_${NAME}.XXXXXX)"
 		if command -v "wget" > /dev/null 2>&1; then

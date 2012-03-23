@@ -26,6 +26,10 @@ case "${ARCHIVE_FORMAT}" in
 (*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
 esac
 
+if [ ! -d "${BUILDER_ATFDIR}" ]; then
+	mkdir -p "${BUILDER_ATFDIR}"
+fi
+
 cd "${D}"
 tar -cvf "${ARCHIVE_TMP1}" .  > "${L}/archive.log" 2>&1
 ${ARCHIVE_COMPRESSOR} "${ARCHIVE_TMP1}" > "${ARCHIVE_TMP2}" 2>> "${L}/archive.log"
