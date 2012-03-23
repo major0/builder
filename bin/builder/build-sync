@@ -66,13 +66,25 @@ build_sync_http()
 	fi
 }
 
-[ -d "${D}" ] || mkdir -p "${D}"
-[ -d "${S}" ] || mkdir -p "${S}"
-[ -d "${L}" ] || mkdir -p "${L}"
+if [ ! -d "${L}" ]; then
+	mkdir -p "${L}"
+fi
+
 if [ -f "${L}/sync.log" ]; then
-	rm "${L}/sync.log" || exit 1
+	rm "${L}/sync.log"
 fi
 touch "${L}/sync.log"
+
+for dir in "${D}" "${S}"; do
+	if [ -d "${dir}" ]; then
+		echo "${NAME}: prepping '${dir}' for sync" >> "${L}/sync.log"
+		mv "${dir}" "${dir}.old"
+		rm -rf "${dir}.old" &
+	fi
+	mkdir -p "${dir}"
+done
+
+wait
 
 if [ -d "${BUILDER_PKGDIR}/${NAME}/source" ]; then
 	if [ "$(command -v rsync)" ]; then

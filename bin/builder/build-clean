@@ -3,16 +3,12 @@
 echo "cleaning: ${1}"
 import "${1}"
 
-for file in .synced .compiled .installed; do
-	[ -f "${L}/${file}" ] && rm -f "${L}/${file}"
+for dir in "${L}" "${S}" "${D}"; do
+	if [ -d "${dir}" ]; then
+		rm -rf "${dir}" &
+	fi
 done
 
-if [ -d "${BUILDER_PKGDIR}/${NAME}/build" ]; then
-	rm -rf "${BUILDER_PKGDIR}/${NAME}/build"
-fi
-
-if [ -d "${BUILDER_PKGDIR}/${NAME}/install" ]; then
-	rm -rf "${BUILDER_PKGDIR}/${NAME}/install"
-fi
+wait
 
 # vim: filetype=sh
