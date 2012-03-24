@@ -129,9 +129,7 @@ set -e
 ##
 # Argument parsing
 if [ "$#" -eq "0" ]; then
-	echo "usage: ${0##*/} [options] <command> [command-opts] <package|all>" >&2
-	echo "try '${0} --help'" >&2
-	exit 1
+	set -- "all"
 fi
 
 ##
