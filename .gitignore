@@ -1,0 +1,6 @@
+root
+artifacts
+packages/*/build
+packages/*/log
+packages/*/install
+packages/*/source
