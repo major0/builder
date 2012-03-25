@@ -201,6 +201,7 @@ fi
 # This may be a little bit confusing to most.  The core issue here is the
 # ability to deal with compiled-in defaults, user-defined defaults, environment
 # settings, and target settings.
+BUILDER_CFGDIR="${BUILDER_TOPDIR}/.builder"
 
 # first clear the variables that would be set by the configs
 CFGDIR=
@@ -210,16 +211,20 @@ ATFDIR=
 LIBDIR=
 # grab the default and target settings if available, let the target settings
 # override the user-defined defaults.
-[ -f "${BUILDER_CFGDIR}/default" ] && . "${BUILDER_CFGDIR}/default"
+if [ "${TARGET}" = "default" ]; then
+	. "${BUILDER_CFGDIR}/default"
+fi
+
 if [ "${TARGET}" != "default" ]; then
 	if [ ! -f "${BUILDER_CFGDIR}/${TARGET}" ]; then
 		echo "error: invalid target '${TARGET}'" >&2
 		exit 1
 	fi
+	BUILDER_CONFIG="${BUILDER_CFGDIR}/${TARGET}"
 fi
+. "${BUILDER_CONFIG}"
 
 # set the builtin defaults based on the BUILDER_TOPDIR
-BUILDER_CFGDIR="${BUILDER_CFGDIR:-${BUILDER_TOPDIR}/.builder}"
 BUILDER_PKGDIR="${BUILDER_PKGDIR:-${BUILDER_TOPDIR}/packages}"
 BUILDER_SRCDIR="${BUILDER_SRCDIR:-${BUILDER_TOPDIR}/sources}"
 BUILDER_ATFDIR="${BUILDER_ATFDIR:-${BUILDER_TOPDIR}/artifacts}"

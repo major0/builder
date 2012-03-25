@@ -2,16 +2,14 @@
 
 echo "compiling: ${1}"
 
-# FIXME the CHOST is part of the BUILDER environment and should be handled
-# accordingly
-CHOST="i586-uplogix-linux-gnu"
-CROSS_COMPILE="${CHOST}-"
-ARCH="x86"
-export ARCH CROSS_COMPILE CHOST
+if [ -z "${CHOST}" ]; then
+	CROSS_COMPILE="${CHOST}-"
+	export CROSS_COMPILE CHOST
+fi
 
-# FIXME xcb sucks my will to live
-PYTHONPATH="${BUILDER_SYSROOT}/usr/lib/python2.7/dist-packages"
-export PYTHONPATH
+if [ -z "${ARCH}" ]; then
+	export ARCH
+fi
 
 # Don't pass along the builder jobcontrol data to child processes
 unset MAKEFLAGS
