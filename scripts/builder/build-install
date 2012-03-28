@@ -1,12 +1,16 @@
 #!/usr/bin/env build
 
 echo "installing: ${1}"
-import "${1}"
+eval $(build query --environ "${1}")
 
-ARCHIVE_FORMAT="tar.bz2"
+# FIXME this should be taken care of by the build config
+if [ -z "${ARCHIVE_FORMAT}" ]; then
+	ARCHIVE_FORMAT="tar.bz2"
+fi
+
 [ -f "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ] || die "archive does not exist for package '${NAME}'"
-if [ ! -d "${BUILDER_SYSROOT}" ]; then
-	mkdir -p "${BUILDER_SYSROOT}" || die "failed to create system root @ '${BUILDER_SYSROOT}'"
+if [ ! -d "${SYSROOT}" ]; then
+	mkdir -p "${SYSROOT}" || die "failed to create system root @ '${SYSROOT}'"
 fi
 
 # FIXME the builder configs should decide the binpkg archive format.
@@ -16,7 +20,7 @@ case "${ARCHIVE_FORMAT}" in
 (*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
 esac
 
-cd "${BUILDER_SYSROOT}" && ${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" | tar x
-cp -a "${L}/.compiled" "${L}/.installed"
+cd "${SYSROOT}" && ${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" | tar x
+cp -a "${W}/.compiled" "${W}/.installed"
 
 # vim: filetype=sh

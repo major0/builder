@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 ## usage
 # Simply display the builder usage.  Though it would be nice if some of this
@@ -6,14 +7,14 @@
 usage()
 {
 cat<<EOF
-usage: ${0##*/} [options] <command> [command-opts] <package|all>
+usage: ${0##*/} [options] <command> [command-opts] [all|<package> ...]
 
 Options
 -------
  -t, --target	Specify a build-target.  This is a generic concept which tells
 		builder the name of the config rule to pick up from the
 		.builder/ path at the top of the build-tree.  The global config
-		.builder/config is always evaluated before evaluating any
+		.builder/default is always evaluated before evaluating any
 		target-specific configs.  This allows for nightly and release
 		targets, as well as architecture specific variations.
 
@@ -27,7 +28,7 @@ Options
 Commands
 --------
 
-  info		The info is used both internally by builder, as well as allows
+  query		The query is used internally by builder, while allowing
 		one to query various packages from the builder repository.
 
 		options
@@ -51,8 +52,8 @@ Commands
 		and usable within the build rules script. The predefined
 		behavior for this action is to cd into the workdir, produce a
 		configure script from the configure.in if necessary, run the
-		configure with predefined BUILDER_CONFIG_OPTS, and then perform
-		a make with BUILDER_MAKE_OPTS.
+		configure with predefined CONFIG_OPTS, and then perform
+		a make with MAKE_OPTS.
 
   archive	Perform a 'make install' of the package into the package's
 		sysroot and then produce an archive of the package and store
@@ -91,49 +92,22 @@ die()
 # import a package into the current program space
 import()
 {
-	[ -d "${BUILDER_PKGDIR}/${1}" ] || die "no such package '${1}'"
-	[ -f "${BUILDER_PKGDIR}/${1}/Buildrules" ] || die "no rule to build package '${1}'"
+	eval $(build query -E '${1}')
 
-	# Set the name so it can be used in the Buildrules
-	NAME="${1}"
-
-	# Clear all the pkg variables that we depend on
-	VERSION=
-	DESCRIPTION=
-	SOURCE_URI=
-	PATCHES=
-	BDEPENDS=
-	RDEPENDS=
-
-	. "${BUILDER_PKGDIR}/${NAME}/Buildrules"
+	. "${RULESFILE}"
 
 	[ "${NAME}" = "${1}" ] || die "Buildrules can not set the package name"
 	[ -z "${VERSION}" ] && die "missing version in '${NAME}'"
 	[ -z "${DESCRIPTION}" ] && die "missing description in '${NAME}'"
 
-	if [ ! -d "${BUILDER_PKGDIR}/${NAME}/source" ]; then
-		if [ -z "${SOURCE_URI}" ]; then
-			die "SOURCE_URI undefined and no source directory in '${NAME}'"
-		fi
+	if [ -z "${SOURCE_URI}" ]; then
+		die "SOURCE_URI undefined and no source directory in '${PKG_NAME}'"
 	fi
-
-	D="${BUILDER_PKGDIR}/${NAME}/install"
-	W="${BUILDER_PKGDIR}/${NAME}/build"
-	S="${BUILDER_PKGDIR}/${NAME}/build/${NAME}-${VERSION}"
-	F="${BUILDER_PKGDIR}/${NAME}/files"
-	L="${BUILDER_PKGDIR}/${NAME}/log"
 }
-
-set -e
-
-##
-# Argument parsing
-if [ "$#" -eq "0" ]; then
-	set -- "all"
-fi
 
 ##
 # Check to see if we are wrapping a sub-command
+# FIXME support custom commands
 BUILD_COMMAND=
 if [ -f "${1}" ]; then
 	case "${1}" in
@@ -156,7 +130,6 @@ for arg in "$@"; do
 done
 unset arg
 
-TARGET="default"
 DEBUG="0"
 while [ "$#" -gt "0" ]; do
 	case "$1" in
@@ -167,7 +140,7 @@ while [ "$#" -gt "0" ]; do
 			echo "error: no target specified" >&2
 			exit 1
 		fi
-		TARGET="${1}"
+		BUILDER_TARGET="${1}"
 		shift 1
 		;;
 	(-d|-debug|--debug)
@@ -201,60 +174,66 @@ fi
 # This may be a little bit confusing to most.  The core issue here is the
 # ability to deal with compiled-in defaults, user-defined defaults, environment
 # settings, and target settings.
-BUILDER_CFGDIR="${BUILDER_TOPDIR}/.builder"
+CFGDIR="${BUILDER_TOPDIR}/.builder"
 
-# first clear the variables that would be set by the configs
-CFGDIR=
-PKGDIR=
-SRCDIR=
-ATFDIR=
-LIBDIR=
 # grab the default and target settings if available, let the target settings
 # override the user-defined defaults.
-if [ "${TARGET}" = "default" ]; then
-	. "${BUILDER_CFGDIR}/default"
+TARGET="default"
+if [ -f "${CFGDIR}/${TARGET}" ]; then
+	. "${CFGDIR}/${TARGET}"
 fi
-
+CFGDIR="${BUILDER_TOPDIR}/.builder"
+TARGET="${BUILDER_TARGET:-${TARGET}}"
 if [ "${TARGET}" != "default" ]; then
-	if [ ! -f "${BUILDER_CFGDIR}/${TARGET}" ]; then
+	if [ ! -f "${CFGDIR}/${TARGET}" ]; then
 		echo "error: invalid target '${TARGET}'" >&2
 		exit 1
 	fi
-	BUILDER_CONFIG="${BUILDER_CFGDIR}/${TARGET}"
+	. "${CFGDIR}/${TARGET}"
 fi
-. "${BUILDER_CONFIG}"
+export TARGET
+
+# Available to be set in the target
+PROJECT_NAME="${PROJECT_NAME:-platform}"
+ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-tar.bz2}"
+export PROJECT_NAME ARCHIVE_FORMAT
+
+# FIXME this stuff needs to be detected in a more reliable fashion
+ARCH="${ARCH:-$(uname -m)}"
+VENDOR="${VENDOR:-pc}"
+PLATFORM="${PLATFORM:-$(uname -i|tr '[A-Z]' '[a-z]')}"
+LIBC="${LIBC:-gnu}"
+export ARCH VENDOR PLATFORM LIBC
+
+# FIXME We should be defaulting to the build platform for this data if the
+# target platform is unspecified
+CHOST="${ARCH}-${VENDOR}-${PLATFORM}-${LIBC}"
+export CHOST
+
+# If the MAKE_OPTS are not set then find the number of CPU's and set them.
+if [ -z "${MAKE_OPTS}" ]; then
+	NUM_CPUS="$(awk '/^processor/{print$3}'< /proc/cpuinfo|sort|uniq|tail -n 1)"
+	NUM_CPUS="$((${NUM_CPUS} + 1))"
+	MAKE_OPTS="-j$((${NUM_CPUS} + 1))"
+fi
+export MAKE_OPTS
 
 # set the builtin defaults based on the BUILDER_TOPDIR
-BUILDER_PKGDIR="${BUILDER_PKGDIR:-${BUILDER_TOPDIR}/packages}"
-BUILDER_SRCDIR="${BUILDER_SRCDIR:-${BUILDER_TOPDIR}/sources}"
-BUILDER_ATFDIR="${BUILDER_ATFDIR:-${BUILDER_TOPDIR}/artifacts}"
-BUILDER_LIBDIR="${BUILDER_LIBDIR:-${BUILDER_TOPDIR}/scripts/builder}"
-BUILDER_SYSROOT="${BUILDER_SYSROOT:-${BUILDER_TOPDIR}/root}"
+BUILDER_PKGDIR="${BUILDER_TOPDIR}/packages"
+BUILDER_SRCDIR="${BUILDER_TOPDIR}/sources"
+BUILDER_ATFDIR="${BUILDER_TOPDIR}/artifacts"
+BUILDER_LIBDIR="${BUILDER_TOPDIR}/scripts/builder"
 
-# set the builder variables based on what was available, either defaults or
-# user-defined, this also allows the BUILDER_* defaults to be overridden by the
-# environ, possibly from within ${HOME}/.profile
-BUILDER_CFGDIR="${CFGDIR:-${BUILDER_CFGDIR}}"
-BUILDER_PKGDIR="${PKGDIR:-${BUILDER_PKGDIR}}"
-BUILDER_SRCDIR="${SRCDIR:-${BUILDER_SRCDIR}}"
-BUILDER_ATFDIR="${ATFDIR:-${BUILDER_ATFDIR}}"
-BUILDER_LIBDIR="${LIBDIR:-${BUILDER_LIBDIR}}"
-BUILDER_SYSROOT="${SYSROOT:-${BUILDER_SYSROOT}}"
-export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR BUILDER_ATFDIR
-export BUILDER_LIBDIR BUILDER_TOPDIR BUILDER_SYSROOT
+export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR
+export BUILDER_ATFDIR BUILDER_LIBDIR BUILDER_TOPDIR
 
-ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-tar.bz2}"
-export ARCHIVE_FORMAT
+# Installation locations for the cross-tools and the target-root
+TOOLDIR="${TOOLDIR:-${BUILDER_TOPDIR}/toolchain}"
+SYSROOT="${SYSROOT:-${BUILDER_TOPDIR}/sysroot}"
+export TOOLDIR SYSROOT
 
 PATH="${BUILDER_LIBDIR}:${PATH}"
 export PATH
-
-# Do some basic checking regarding the target package
-if [ "$#" -eq "0" ]; then
-	error "no package specified"
-	echo "try '${0} --help'" >&2
-	exit 1
-fi
 
 # if we aren't given an action then we do everything
 ACTION="archive"
@@ -263,21 +242,29 @@ if [ "$#" -gt "0" ]; then
 	shift 1
 fi
 
-if [ "${ACTION}" = "all" ]; then
-	ACTION="install"
-fi
-
+# FIXME Support custom commands somehow..
 if [ ! -x "${BUILDER_LIBDIR}/build-${ACTION}" ]; then
 	error "unknown action '${ACTION}'"
 	echo "try '${0} --help'" >&2
 	exit 1
 fi
 
+# info is a special case
+# FIXME this is semi-busted
+if [ "${ACTION}" = "query" ]; then
+	exec "${BUILDER_LIBDIR}/build-query" "${@}"
+fi
+
 if [ "$#" -lt "1" ]; then
 	NAME="all"
 	if [ "${PWD##${BUILDER_PKGDIR}/}" != "${PWD}" ]; then
-		NAME="${PWD##${BUILDER_PKGDIR}/}"
-		NAME="${NAME%/*}"
+		name1="${PWD##${BUILDER_PKGDIR}/}"
+		if [ "${name1}" = "${name#*/*/}" ]; then
+			NAME="${name1}"
+		else
+			name2="${name1#*/*/}"
+			NAME="${name1%/${name2}}"
+		fi
 	fi
 	set -- "${NAME}"
 fi
@@ -291,18 +278,10 @@ if [ "${1}" != "all" ]; then
 		if [ "${package}" = "all" ]; then
 			exec "${0}" "${ACTION}" "${package}"
 		fi
-		[ -d "${BUILDER_PKGDIR}/${package}" ] || die "no such package '${package}'"
-		[ -f "${BUILDER_PKGDIR}/${package}/Buildrules" ] || die "no rule to build package '${package}'"
+		if ! build-query --exists "${package}"; then
+			exit 1
+		fi
 	done
-fi
-
-# info is a special case
-# FIXME this is semi-busted
-if [ "${ACTION}" = "info" ]; then
-	for package in "$@"; do
-		"${BUILDER_LIBDIR}/build-info" "${package}" "${@}"
-	done
-	exit
 fi
 
 # build the Makefile
@@ -314,14 +293,9 @@ fi
 export BUILDER_MAKEFILE
 "${BUILDER_LIBDIR}/build-makedeps" || die "failed generate build dependencies"
 
-# FIXME not the right way to handle this, we should be only setting this if the
-# target leaves it empty, and we should stick with the norm of setting it to
-# num_cpus+1
-MAKE_OPTS="-j8"
-export MAKE_OPTS
-
 packages=
 for package in "$@"; do
+	package="$(echo "${package}"|tr '/-' '__')"
 	packages="${packages} ${package}_${ACTION}"
 done
 set -- ${packages}

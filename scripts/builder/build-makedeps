@@ -1,4 +1,25 @@
 #!/usr/bin/env build
+cat >"${BUILDER_MAKEFILE}" <<EOF
+##
+# Some generic catchall rules
+all: packages_archive
+all_sync: packages_sync
+all_clean: packages_clean sysroot_clean
+all_distclean: packages_distclean sysroot_clean artifacts_clean tooldir_clean
+all_compile: packages_compile
+all_archive: packages_archive
+all_install: packages_install
+all_makedeps:
+
+sysroot_clean:
+	@if [ -d "${SYSROOT}" ]; then echo cleaning: sysroot;rm -rf "${SYSROOT}";fi
+tooldir_clean:
+	@if [ -d "${TOOLDIR}" ]; then echo cleaning: sysroot;rm -rf "${TOOLDIR}";fi
+artifacts_clean:
+	@if [ -d "${BUILDER_ATFDIR}" ]; then echo cleaning: artifacts;rm -rf "${BUILDER_ATFDIR}";fi
+
+
+EOF
 
 PACKAGES=
 PACKAGES_SYNC=
@@ -7,92 +28,83 @@ PACKAGES_COMPILE=
 PACKAGES_ARCHIVE=
 PACKAGES_INSTALL=
 PACKAGES_DISTCLEAN=
-for package in ${BUILDER_PKGDIR}/*/Buildrules; do
-	[ -f "${package}" ] || continue
-	package="${package%%/Buildrules}"
-	package="${package##*/}"
-	PACKAGES="${PACKAGES} ${package}"
-	PACKAGES_SYNC="${PACKAGES_SYNC} ${package}_sync"
-	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package}_clean"
-	PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package}_compile"
-	PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package}_archive"
-	PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package}_install"
-	PACKAGES_DISTCLEAN="${PACKAGES_DISTCLEAN} ${package}_distclean"
-done
-
-cat >"${BUILDER_MAKEFILE}" <<EOF
-##
-# Some generic catchall rules
-all: ${PACKAGES_ARCHIVE}
-all_sync: ${PACKAGES_SYNC}
-all_clean: ${PACKAGES_CLEAN} sysroot_clean
-all_distclean: ${PACKAGES_DISTCLEAN} sysroot_clean artifacts_clean
-all_compile: ${PACKAGES_COMPILE}
-all_archive: ${PACKAGES_ARCHIVE}
-all_install: ${PACKAGES_INSTALL}
-all_makedeps:
-
-sysroot_clean:
-	@if [ -d "${BUILDER_SYSROOT}" ]; then echo cleaning: sysroot;rm -rf "${BUILDER_SYSROOT}";fi
-sources_clean:
-	@if [ -d "${BUILDER_SRCDIR}" ]; then echo cleaning: sources;rm -rf "${BUILDER_SRCDIR}";fi
-artifacts_clean:
-	@if [ -d "${BUILDER_ATFDIR}" ]; then echo cleaning: artifacts;rm -rf "${BUILDER_ATFDIR}";fi
-
-EOF
-
-for package in ${PACKAGES}; do
-	# If the package defines itself as a toolchain component then we unset
-	# TOOLCHAIN, else we set TOOLCHAIN to gcc to be included in the
-	# BDEPENDS
-	TOOLCHAIN=
-	import "${package}"
-	if [ -z "${TOOLCHAIN}" ]; then
-		TOOLCHAIN="gcc"
-	else
-		TOOLCHAIN=
+for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
+	if ! eval $(build query --environ "${package}"); then
+		die "in package '${package}'"
 	fi
 
+	package_make="$(echo "${package}"|tr '/' '_')"
 	package_archive="${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
-	package_rule="${BUILDER_PKGDIR}/${NAME}/Buildrules"
-	package_logdir="${BUILDER_PKGDIR}/${NAME}/log"
-	package_install="${package_logdir}/.installed"
-	package_compile="${package_logdir}/.compiled"
-	package_sync="${package_logdir}/.synced"
+	package_rulesfile="${RULESFILE}"
+	package_logdir="${L}"
+	package_install="${W}/.installed"
+	package_compile="${W}/.compiled"
+	package_sync="${W}/.synced"
 	# FIXME we need to deal with package_source as well
 
+	# This loop can end up being fairly costly if we have to fire up
+	# build-query, particularly when dealing with a large number of
+	# packages.  So we do some FS level checks first in hopes of avoiding
+	# it and improving performance.
 	package_deps=
-	for package in ${TOOLCHAIN} ${BDEPENDS}; do
-		package_deps="${package_deps} ${BUILDER_PKGDIR}/${package}/log/.installed"
+	for pkg_dep in ${BDEPENDS}; do
+		if [ ! -d "${BUILDER_PKGDIR}/${pkg_dep}" ]; then
+			if [ ! -d "${BUILDER_PKGDIR}/${PROJECT_NAME}/${pkg_dep}" ]; then
+				if ! build query --exists "${pkg_dep}"; then
+					die "bad BDEPENDS in package '${package}'"
+				fi
+			elif [ ! -f "${BUILDER_PKGDIR}/${PROJECT_NAME}/${pkg_dep}/Buildrules" ]; then
+				die "no Buildrules for '${pkg_dep}'"
+			fi
+		elif [ ! -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules" ]; then
+			die "no Buildrules for '${pkg_dep}'"
+		fi
+		pkg_dep="$(echo "${pkg_dep}"|tr '/' '_')"
+		package_deps="${package_deps} ${pkg_dep}_install"
 	done
 
 cat <<EOF
 ##
-# ${NAME} - ${DESCRIPTION}
-${NAME}: ${package_archive}
-${NAME}_install: ${package_install}
-${NAME}_archive: ${package_archive}
-${NAME}_compile: ${package_compile}
-${NAME}_sync: ${package_sync}
-${NAME}_makedeps:
-${NAME}_clean:
-	@build-clean ${NAME}
-${NAME}_distclean:
-	@build-distclean ${NAME}
-
+# ${CATEGORY}/${NAME} - ${DESCRIPTION}
+${package_make}: ${package_archive}
+${package_make}_install: ${package_install}
+${package_make}_archive: ${package_archive}
+${package_make}_compile: ${package_compile}
+${package_make}_sync: ${package_sync}
+${package_make}_makedeps:
+${package_make}_clean:
+	@build-clean ${CATEGORY}/${NAME}
+${package_make}_distclean:
+	@build-distclean ${CATEGORY}/${NAME}
 ${package_install}: ${package_archive}
-	@build-install ${NAME}
-
+	@build-install ${CATEGORY}/${NAME}
 ${package_archive}: ${package_compile}
-	@build-archive ${NAME}
-
+	@build-archive ${CATEGORY}/${NAME}
 ${package_compile}: ${package_sync}${package_deps}
-	@build-compile ${NAME}
-
+	@build-compile ${CATEGORY}/${NAME}
 ${package_sync}: ${package_rule}
-	@build-sync ${NAME}
+	@build-sync ${CATEGORY}/${NAME}
 
 EOF
+
+	if [ "${CATEGORY}" = "${PROJECT_NAME}" ]; then
+		PACKAGES="${PACKAGES} ${package_make}"
+		PACKAGES_SYNC="${PACKAGES_SYNC} ${package_make}_sync"
+		PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
+		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_make}_compile"
+		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package_make}_archive"
+		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_make}_install"
+		PACKAGES_DISTCLEAN="${PACKAGES_DISTCLEAN} ${package_make}_distclean"
+	fi
 done >> "${BUILDER_MAKEFILE}"
+
+cat<<EOF >> "${BUILDER_MAKEFILE}"
+packages_sync: ${PACKAGES_SYNC}
+packages_clean: ${PACKAGES_CLEAN}
+packages_compile: ${PACKAGES_COMPILE}
+packages_archive: ${PACKAGES_ARCHIVE}
+packages_install: ${PACKAGES_INSTALL}
+packages_distclean: ${PACKAGES_DISTCLEAN}
+EOF
 
 # vim: filetype=sh

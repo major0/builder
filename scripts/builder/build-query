@@ -1,0 +1,258 @@
+#!/usr/bin/env build
+
+parse_pkg_name()
+{
+	# Only allow a single '/' in the name
+	if [ "1${1##*/}" != "1${1#*/}" ]; then
+		return 1
+	fi
+
+	if [ "2${1#*/}" != "2${1}" ]; then
+		echo -n "${1}"
+	else
+		echo -n "${PROJECT_NAME}/${1}"
+	fi
+}
+
+parse_name()
+{
+	if ! parse_pkg_name "${1}" > /dev/null 2>&1; then
+		return "$?"
+	fi
+
+	set -- "$(parse_pkg_name "${1}")"
+	echo -n "${1#*/}"
+}
+
+parse_category()
+{
+	if ! parse_pkg_name "${1}" > /dev/null 2>&1; then
+		return "$?"
+	fi
+
+	set -- "$(parse_pkg_name "${1}")"
+	echo -n "${1%/*}"
+}
+
+QUERY_ACTION="summary"
+
+while [ "$#" -gt "0" ]; do
+	case "${1}" in
+	(-B|-build-deps|--build-deps)
+		QUERY_ACTION="bdeps";;
+	(-c|-category|--category)
+		QUERY_ACTIONS="category";;
+	(-d|-description|--description)
+		QUERY_ACTION="descr";;
+	(-D|-destdir|--destdir)
+		QUERY_ACTION="destdir";;
+	(--exists)
+		QUERY_ACTION="exists";;
+	(-e|-envdir|--envdir)
+		QUERY_ACTION="envdir";;
+	(-E|-environ|--environ)
+		QUERY_ACTION="environ";;
+	(-f|-filesdir|--filesdir)
+		QUERY_ACTION="filesdir";;
+	(-l|-logdir|--logdir)
+		QUERY_ACTION="logdir";;
+	(-n|-name|--name)
+		QUERY_ACTION="name";;
+	(-N|-pkgname|--pkgname)
+		QUERY_ACTION="pkgname";;
+	(-p|-patches|--patches)
+		QUERY_ACTION="patches";;
+	(-P|-pkgdir|--pkgdir)
+		QUERY_ACTION="pkgdir";;
+	(-r|-rulefile|--rulesfile)
+		QUERY_ACTION="rulesfile";;
+	(-R|-depends|--depends)
+		QUERY_ACTION="rdeps";;
+	(-s|-srcdir|--srcdir)
+		QUERY_ACTION="srcdir";;
+	(-S|-summary|--summary)
+		QUERY_ACTION="summary";;
+	(-t|-tmpdir|--tmpdir)
+		QUERY_ACTION="tmpdir";;
+	(-u|-source-uri|--src-uri)
+		QUERY_ACTION="src_uri";;
+	(-v|-version|--version)
+		QUERY_ACTION="version";;
+	(-V|-var|--var)
+		shift
+		if [ "$#" -lt "1" ]; then
+			error "no variable specified"
+			echo "try '${##*//} --help'" >&2
+			exit 1
+		fi
+
+		QUERY_ACTION="var"
+		QUERY_VAR="${1}"
+		;;
+	(-w|-workdir|--workdir)
+		QUERY_ACTION="workdir";;
+	(-*)	error "unknown query '${1}'"
+		echo "try '${0##*/} --help'" >&2
+		exit 1
+		;;
+	(*)	break;;
+	esac
+	shift
+done
+
+if [ "$#" -eq "0" ]; then
+	die "no package specified"
+fi
+
+# We can aquire this data before we bother importing anything
+NAME="$(parse_name "${1}")"
+CATEGORY="$(parse_category "${1}")"
+PKG_NAME="${CATEGORY}/${NAME}"
+
+if [ ! -d "${BUILDER_PKGDIR}/${PKG_NAME}" ]; then
+	die "no such package '${1}'"
+fi
+
+RULESFILE="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/Buildrules"
+if [ ! -f "${RULESFILE}" ]; then
+	die "no rulesfile for package '${1}'"
+fi
+
+export NAME CATEGORY PKG_NAME RULESFILE
+
+shift
+
+# These variables are used by the Buildrules and fundmentally make up the
+# majority of their environ data
+F="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/files"
+W="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/build"
+L="${W}/log"
+E="${W}/env"
+T="${W}/tmp"
+D="${W}/install"
+
+export F W L E T D
+
+# These requests can be answered without sourcing the Buildrules, everything
+# else needs the Rulesfile sourced in
+case "${QUERY_ACTION}" in
+(exists)	exit 0;; # Simply break out
+(name)		echo "${NAME}";exit 0;;
+(category)	echo "${CATEGORY}";exit 0;;
+(pkgname)	echo "${CATEGORY}/${NAME}";exit 0;;
+(pkgdir)	echo "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}";exit 0;;
+(rulesfile)	echo "${RULESFILE}";exit 0;;
+(filesdir)	echo "${F}";exit 0;;
+(workdir)	echo "${W}";exit 0;;
+(logdir)	echo "${L}";exit 0;;
+(envdir)	echo "${E}";exit 0;;
+(tmpdir)	echo "${T}";exit 0;;
+(destdir)	echo "${D}";exit 0;;
+esac
+
+# These variables are only set within a Rulesfile and thus need to be cleared
+# before sourcing it in.
+VERSION=
+DESCRIPTION=
+SOURCE_URI=
+PATCHES=
+RDEPENDS=
+BDEPENDS=
+
+. "${RULESFILE}"
+
+# Allow the developer to hijack the SRC_URI with a checked out repository
+if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
+	SOURCE_URI="file://${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
+fi
+export VERSION DESCRIPTION SOURCE_URI PATCHES BDEPENDS RDEPENDS
+
+# Ironically, the source working directory can't be assigned until we source in
+# the Buildrules due to the dependancy on the VERSION
+S="${W}/${NAME}-${VERSION}"
+export S
+
+case "${QUERY_ACTION}" in
+(srcdir)	echo "${S}";;
+(bdeps)		echo "${BDEPENDS}";;
+(rdeps)		echo "${RDEPENDS}";;
+(descr)		echo "${DESCRIPTION}";;
+(version)	echo "${VERSION}";;
+(patches)	echo "${PATCHES}";;
+
+# Allow the caller to specify the variable to report.
+# FIXME may need to protect our existing environ from being poked.
+(var)		if [ -z "${QUERY_VAR}" ]; then
+			die "no variable specified"
+		fi
+		eval "echo \"\$${QUERY_VAR}\"";;
+
+# All the fun environ data necessary for grabbing a single package.  We ALWAYS
+# report all the variables, even if unset.  This allows a caller to use this
+# command to set their own environ and automagically clear any variables which
+# are already set in their environment.
+(environ)
+		cat<<-EOF
+		PROJECT_NAME="${PROJECT_NAME}"
+		TOPDIR="${TOPDIR}"
+		TOOLDIR="${TOOLDIR}"
+		SYSROOT="${SYSROOT}"
+		CHOST="${CHOST}"
+		ARCH="${ARCH}"
+		VENDOR="${VENDOR}"
+		PLATFORM="${PLATFORM}"
+		NAME="${NAME}"
+		CATEGORY="${CATEGORY}"
+		RULESFILE="${RULESFILE}"
+		VERSION="${VERSION}"
+		DESCRIPTION="${DESCRIPTION}"
+		SOURCE_URI="${SOURCE_URI}"
+		EOF
+		if [ ! -z "${PATCHES}" ]; then
+			echo "PATCHES=\"${PATCHES}\""
+		else
+			echo "PATCHES="
+		fi
+		if [ ! -z "${RDEPENDS}" ]; then
+			echo "RDEPENDS=\"${RDEPENDS}\""
+		else
+			echo "RDEPENDS="
+		fi
+		if [ ! -z "${BDEPENDS}" ]; then
+			echo "BDEPENDS=\"${BDEPENDS}\""
+		else
+			echo "BDEPENDS="
+		fi
+		cat<<-EOF
+		F="${F}"
+		W="${W}"
+		L="${L}"
+		E="${E}"
+		T="${T}"
+		D="${D}"
+		S="${S}"
+		EOF
+		;;
+
+# Basic summary command
+(summary)
+		echo "Name:		${CATEGORY}/${NAME}"
+		echo "Version:	${VERSION}"
+		echo "Source:		${SOURCE_URI}"
+		if [ ! -z "${RDEPENDS}" ]; then
+			echo "Depends:		${RDEPENDS}"
+		fi
+		if [ ! -z "${BDEPENDS}" ]; then
+			echo "BuildDeps:	${BDEPENDS}"
+		fi
+
+		cat <<-EOF
+
+		${DESCRIPTION}
+		EOF
+		;;
+
+(*)		die "unhandled query action '${QUERY_ACTION}'";;
+esac
+
+# vim: filetype=sh

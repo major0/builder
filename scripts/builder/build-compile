@@ -2,19 +2,16 @@
 
 echo "compiling: ${1}"
 
+# FIXME this likely belongs in a imported build rule
 if [ -z "${CHOST}" ]; then
 	CROSS_COMPILE="${CHOST}-"
 	export CROSS_COMPILE CHOST
 fi
 
-if [ -z "${ARCH}" ]; then
-	export ARCH
-fi
-
 # Don't pass along the builder jobcontrol data to child processes
 unset MAKEFLAGS
 
-PATH="${BUILDER_SYSROOT}/usr/bin:${PATH}"
+PATH="${TOOLDIR}/usr/bin:${PATH}"
 export PATH
 
 pkg_compile()
@@ -32,7 +29,8 @@ pkg_compile()
 	make ${MAKE_OPTS} && make DESTDIR="${D}" install
 }
 
-import "${1}"
+eval $(build query --environ "${1}")
+. "${RULESFILE}"
 
 # define the toolchain
 if [ -z "${TOOLCHAIN}" ]; then
@@ -46,9 +44,9 @@ if [ -z "${TOOLCHAIN}" ]; then
 fi
 
 # pkgconfig can be a right pita...
-PKG_CONFIG_LIBDIR="${BUILDER_SYSROOT}/usr/share/pkgconfig:${BUILDER_SYSROOT}/usr/lib/pkgconfig"
+PKG_CONFIG_LIBDIR="${SYSROOT}/usr/share/pkgconfig:${SYSROOT}/usr/lib/pkgconfig"
 export PKG_CONFIG_LIBDIR PKG_CONFIG_PATH
-export PKG_CONFIG_SYSROOT_DIR="${BUILDER_SYSROOT}"
+export PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"
 
 [ -d "${D}" ] || mkdir -p "${D}"
 [ -d "${S}" ] || mkdir -p "${S}"
@@ -62,6 +60,6 @@ echo "=========" >> "${L}/compile.log"
 
 cd "${S}"
 pkg_compile >> "${L}/compile.log" 2>&1
-date --utc > "${L}/.compiled"
+date --utc > "${W}/.compiled"
 
 # vim: filetype=sh

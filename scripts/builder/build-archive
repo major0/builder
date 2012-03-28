@@ -1,7 +1,7 @@
 #!/usr/bin/env build
 
 echo "archiving: ${1}"
-import "${1}"
+eval $(build query --environ "${1}")
 
 ARCHIVE_TMP1=
 ARCHIVE_TMP2=
@@ -37,6 +37,6 @@ if [ -f "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
 	rm -f "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
 fi
 mv -v "${ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" >> "${L}/archive.log" 2>&1
-touch -r "${L}/.compiled" "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+touch -r "${W}/.compiled" "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
 
 # vim: filetype=sh
