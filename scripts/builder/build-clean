@@ -2,19 +2,15 @@
 
 echo "cleaning: ${1}"
 
-case "${PKG_NAME}" in
-# FIXME need a way to flag a path as NOCLEAN
-(buildtools/*)	rm -f "$(build query --workdir "${1}")/.installed"; exit 0;;
-esac
 eval $(build query --environ "${1}")
 
-
-for dir in "$(build query --workdir "${1}")" "$(build query --destdir "${1}")"; do
-	if [ -d "${dir}" ]; then
-		rm -rf "${dir}" &
+# FIXME need a way to flag a path as NOCLEAN
+if [ "${CATEGORY}" = "buildtools" ]; then
+	rm -f "${W}/.installed"
+else
+	if [ -d "${W}" ]; then
+		rm -rf "${W}"
 	fi
-done
-
-wait
+fi
 
 # vim: filetype=sh

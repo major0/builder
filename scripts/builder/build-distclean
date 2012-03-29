@@ -2,12 +2,10 @@
 
 echo "dist-cleaning: ${1}"
 
-for dir in "$(build query --workdir "${1}")" "$(build query --destdir "${1}")"; do
-	if [ -d "${dir}" ]; then
-		rm -rf "${dir}" &
-	fi
-done
+eval $(build query --environ "${1}")
 
-wait
+if [ -d "${W}" ]; then
+	rm -rf "${W}"
+fi
 
 # vim: filetype=sh
