@@ -295,6 +295,9 @@ export BUILDER_MAKEFILE
 
 packages=
 for package in "$@"; do
+	if [ "${package}" != "all" ]; then
+		package="$(build query --pkgname "${package}")"
+	fi
 	package="$(echo "${package}"|tr '/-' '__')"
 	packages="${packages} ${package}_${ACTION}"
 done
