@@ -14,7 +14,7 @@ all_makedeps:
 sysroot_clean:
 	@if [ -d "${SYSROOT}" ]; then echo cleaning: sysroot;rm -rf "${SYSROOT}";fi
 tooldir_clean:
-	@if [ -d "${TOOLDIR}" ]; then echo cleaning: sysroot;rm -rf "${TOOLDIR}";fi
+	@if [ -d "${TOOLDIR}" ]; then echo cleaning: tooldir;rm -rf "${TOOLDIR}";fi
 artifacts_clean:
 	@if [ -d "${BUILDER_ATFDIR}" ]; then echo cleaning: artifacts;rm -rf "${BUILDER_ATFDIR}";fi
 
@@ -33,7 +33,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 		die "in package '${package}'"
 	fi
 
-	package_make="$(echo "${package}"|tr '/' '_')"
+	package_make="$(echo "${package}"|tr '/-' '__')"
 	package_archive="${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
 	package_rulesfile="${RULESFILE}"
 	package_logdir="${L}"
@@ -56,11 +56,11 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 			elif [ ! -f "${BUILDER_PKGDIR}/${PROJECT_NAME}/${pkg_dep}/Buildrules" ]; then
 				die "no Buildrules for '${pkg_dep}'"
 			fi
+			pkg_dep="${PROJECT_NAME}/${pkg_dep}"
 		elif [ ! -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules" ]; then
 			die "no Buildrules for '${pkg_dep}'"
 		fi
-		pkg_dep="$(echo "${pkg_dep}"|tr '/' '_')"
-		package_deps="${package_deps} ${pkg_dep}_install"
+		package_deps="${package_deps} ${BUILDER_PKGDIR}/${pkg_dep}/build/.installed"
 	done
 
 cat <<EOF
@@ -79,23 +79,36 @@ ${package_make}_distclean:
 ${package_install}: ${package_archive}
 	@build-install ${CATEGORY}/${NAME}
 ${package_archive}: ${package_compile}
-	@build-archive ${CATEGORY}/${NAME}
+	@if ! build-archive ${CATEGORY}/${NAME}; then \
+		echo "error: failed to archive package '${CATEGORY}/${NAME}'" >&2 ;\
+		echo "logfile: '${L}/archive.log'" >&2 ;\
+		exit 1; \
+	fi
 ${package_compile}: ${package_sync}${package_deps}
-	@build-compile ${CATEGORY}/${NAME}
+	@if ! build-compile ${CATEGORY}/${NAME}; then \
+		echo "error: failed to compile package '${CATEGORY}/${NAME}'" >&2 ;\
+		echo "logfile: '${L}/compile.log'" >&2 ;\
+		exit 1 ;\
+	fi
 ${package_sync}: ${package_rule}
-	@build-sync ${CATEGORY}/${NAME}
+	@if ! build-sync ${CATEGORY}/${NAME}; then \
+		echo "error: failed to syncronize package '${CATEGORY}/${NAME}'" >&2 ;\
+		echo "logfile: '${L}/sync.log'" >&2 ;\
+		exit 1 ;\
+	fi
 
 EOF
 
 	if [ "${CATEGORY}" = "${PROJECT_NAME}" ]; then
 		PACKAGES="${PACKAGES} ${package_make}"
-		PACKAGES_SYNC="${PACKAGES_SYNC} ${package_make}_sync"
-		PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
-		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_make}_compile"
-		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package_make}_archive"
-		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_make}_install"
-		PACKAGES_DISTCLEAN="${PACKAGES_DISTCLEAN} ${package_make}_distclean"
+		PACKAGES_SYNC="${PACKAGES_SYNC} ${package_sync}"
+		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_compile}"
+		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package_archive}"
+		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_install}"
 	fi
+
+	PACKAGES_DISTCLEAN="${PACKAGES_DISTCLEAN} ${package_make}_distclean"
+	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
 done >> "${BUILDER_MAKEFILE}"
 
 cat<<EOF >> "${BUILDER_MAKEFILE}"
