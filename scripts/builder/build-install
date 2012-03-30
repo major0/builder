@@ -19,7 +19,7 @@ case "${ARCHIVE_FORMAT}" in
 (*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
 esac
 
-if [ "${CATEGORY}" = "buildtools" ]; then
+if [ ! -z "${TOOLCHAIN}" ]; then
 	cd "${TOOLDIR}"
 else
 	cd "${SYSROOT}"

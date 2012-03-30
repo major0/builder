@@ -4,10 +4,8 @@ echo "cleaning: ${1}"
 
 eval $(build query --environ "${1}")
 
-# FIXME need a way to flag a path as NOCLEAN
-if [ "${CATEGORY}" = "buildtools" ]; then
-	rm -f "${W}/.installed"
-else
+rm -f "${W}/.installed"
+if [ -z "${TOOLCHAIN}" ]; then
 	if [ -d "${W}" ]; then
 		rm -rf "${W}"
 	fi

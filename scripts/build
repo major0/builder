@@ -92,16 +92,34 @@ die()
 # import a package into the current program space
 import()
 {
-	eval $(build query -E '${1}')
+	# Evaluate our environment data
+	# There is a bit of a performance penalty here in that the query
+	# routine will source the build-rules to finish collecting data, so we
+	# end up sourcing the Buildrules twice.
+	eval $(build query -E "${1}")
 
+	# Source in the category Buildrules
+	if [ -f "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules" ]; then
+		. "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"
+	fi
+
+	# Source in the package Buildrules
 	. "${RULESFILE}"
 
-	[ "${NAME}" = "${1}" ] || die "Buildrules can not set the package name"
-	[ -z "${VERSION}" ] && die "missing version in '${NAME}'"
-	[ -z "${DESCRIPTION}" ] && die "missing description in '${NAME}'"
+	if [ "${CATEGORY}/${NAME}" != "${1}" ]; then
+		die "Buildrules can not set the package name"
+	fi
+
+	if [ -z "${VERSION}" ]; then
+		die "missing version in '${NAME}'"
+	fi
+
+	if [ -z "${DESCRIPTION}" ]; then
+		die "missing description in '${NAME}'"
+	fi
 
 	if [ -z "${SOURCE_URI}" ]; then
-		die "SOURCE_URI undefined and no source directory in '${PKG_NAME}'"
+		die "SOURCE_URI undefined and no source directory in '${CATEGORY}/${NAME}'"
 	fi
 }
 

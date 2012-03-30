@@ -72,7 +72,9 @@ while [ "$#" -gt "0" ]; do
 		QUERY_ACTION="srcdir";;
 	(-S|-summary|--summary)
 		QUERY_ACTION="summary";;
-	(-t|-tmpdir|--tmpdir)
+	(-t|-toolchain|--toolchain)
+		QUERY_ACTION="toolchain";;
+	(-T|-tmpdir|--tmpdir)
 		QUERY_ACTION="tmpdir";;
 	(-u|-source-uri|--src-uri)
 		QUERY_ACTION="src_uri";;
@@ -158,14 +160,18 @@ SOURCE_URI=
 PATCHES=
 RDEPENDS=
 BDEPENDS=
+TOOLCHAIN=
 
+if [ -f "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules" ]; then
+	. "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"
+fi
 . "${RULESFILE}"
 
 # Allow the developer to hijack the SRC_URI with a checked out repository
 if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
 	SOURCE_URI="file://${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
 fi
-export VERSION DESCRIPTION SOURCE_URI PATCHES BDEPENDS RDEPENDS
+export VERSION DESCRIPTION SOURCE_URI PATCHES BDEPENDS RDEPENDS TOOLCHAIN
 
 # Ironically, the source working directory can't be assigned until we source in
 # the Buildrules due to the dependancy on the VERSION
@@ -173,6 +179,11 @@ S="${W}/${NAME}-${VERSION}"
 export S
 
 case "${QUERY_ACTION}" in
+(toolchain)	if [ -z "${TOOLCHAIN}" ]; then
+			exit 1
+		else
+			exit 0
+		fi;;
 (srcdir)	echo "${S}";;
 (bdeps)		echo "${BDEPENDS}";;
 (rdeps)		echo "${RDEPENDS}";;
@@ -208,6 +219,12 @@ case "${QUERY_ACTION}" in
 		DESCRIPTION="${DESCRIPTION}"
 		SOURCE_URI="${SOURCE_URI}"
 		EOF
+
+		if [ ! -z "${TOOLCHAIN}" ]; then
+			echo "TOOLCHAIN=\"${TOOLCHAIN}\""
+		else
+			echo "TOOLCHAIN="
+		fi
 		if [ ! -z "${PATCHES}" ]; then
 			echo "PATCHES=\"${PATCHES}\""
 		else

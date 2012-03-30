@@ -23,13 +23,10 @@ pkg_compile()
 	make ${MAKE_OPTS} && make DESTDIR="${D}" install
 }
 
-eval $(build query --environ "${1}")
-. "${RULESFILE}"
+import "${1}"
 
 # define the toolchain
-case "${CATEGORY}" in
-(buildtools);;
-(*)	# FIXME this likely belongs in a imported build rule
+if [ -z "${TOOLCHAIN}" ]; then
 	if [ ! -z "${CHOST}" ]; then
 		CROSS_COMPILE="${CHOST}-"
 		export CROSS_COMPILE CHOST
@@ -41,8 +38,7 @@ case "${CATEGORY}" in
 	STRIP="${CROSS_COMPILE}strip"
 	RANDLIB="${CROSS_COMPILE}ranlib"
 	export CC CXX LD AR STRIP RANLIB
-	;;
-esac
+fi
 
 # pkgconfig can be a right pita...
 PKG_CONFIG_LIBDIR="${SYSROOT}/usr/share/pkgconfig:${SYSROOT}/usr/lib/pkgconfig"
