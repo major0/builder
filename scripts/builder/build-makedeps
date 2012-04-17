@@ -3,7 +3,8 @@ cat >"${BUILDER_MAKEFILE}" <<EOF
 ##
 # Some generic catchall rules
 all: packages_archive
-all_sync: packages_sync
+all_fetch: packages_fetch
+all_prep: packages_prep
 all_clean: packages_clean sysroot_clean
 all_distclean: packages_distclean sysroot_clean artifacts_clean tooldir_clean
 all_compile: packages_compile
@@ -22,7 +23,8 @@ artifacts_clean:
 EOF
 
 PACKAGES=
-PACKAGES_SYNC=
+PACKAGES_PREP=
+PACKAGES_FETCH=
 PACKAGES_CLEAN=
 PACKAGES_COMPILE=
 PACKAGES_ARCHIVE=
@@ -34,13 +36,43 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	fi
 
 	package_make="$(echo "${package}"|tr '/-' '__')"
-	package_archive="${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
-	package_rulesfile="${RULESFILE}"
-	package_logdir="${L}"
 	package_install="${W}/.installed"
 	package_compile="${W}/.compiled"
-	package_sync="${W}/.synced"
-	# FIXME we need to deal with package_source as well
+	package_prep="${W}/.prepped"
+	package_logdir="${L}"
+
+	if [ -z "${TOOLCHAIN}" ]; then
+		package_archive="${BUILDER_ATFDIR}/${CHOST}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+	else
+		package_archive="${BUILDER_ATFDIR}/${CBUILD}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+	fi
+
+	package_sources="${RULESFILE}"
+	for patch in ${PATCHES}; do
+		patch="${F}/${NAME}-${VERSION}-${patch}.patch"
+		if [ ! -f "${patch}" ]; then
+			die "patch does not exist '${patch}'"
+		fi
+		package_sources="${package_sources} ${patch}"
+	done
+
+	# FIXME there can be strange characters in a URI .. this might not be
+	# the best approach in the long term.
+	for url in ${SOURCE_URI}; do
+		case "${url}" in
+		# Do not translate local paths into archives in BUILDER_SRCDIR
+		(file://*|/*)	packages_sources="${package_sources} ${url##file://}";;
+
+		# Assume anything else with :// in the name is remote
+		(*://*)		pkg_src="$(build-fetch --name "${url}")"
+				if [ $? -ne 0 ]; then
+					exit 1
+				fi
+				package_sources="${package_sources} ${BUILDER_SRCDIR}/${pkg_src}";;
+		# Junk?
+		(*)		die "do not know how to handle url '${url}'";;
+		esac
+	done
 
 	# This loop can end up being fairly costly if we have to fire up
 	# build-query, particularly when dealing with a large number of
@@ -70,7 +102,7 @@ ${package_make}: ${package_archive}
 ${package_make}_install: ${package_install}
 ${package_make}_archive: ${package_archive}
 ${package_make}_compile: ${package_compile}
-${package_make}_sync: ${package_sync}
+${package_make}_fetch: ${package_sources}
 ${package_make}_makedeps:
 ${package_make}_clean:
 	@build-clean ${CATEGORY}/${NAME}
@@ -84,24 +116,54 @@ ${package_archive}: ${package_compile}
 		echo "logfile: '${L}/archive.log'" >&2 ;\
 		exit 1; \
 	fi
-${package_compile}: ${package_sync}${package_deps}
+${package_compile}: ${package_prep}${package_deps}
 	@if ! build-compile ${CATEGORY}/${NAME}; then \
 		echo "error: failed to compile package '${CATEGORY}/${NAME}'" >&2 ;\
 		echo "logfile: '${L}/compile.log'" >&2 ;\
 		exit 1 ;\
 	fi
-${package_sync}: ${package_rule}
-	@if ! build-sync ${CATEGORY}/${NAME}; then \
-		echo "error: failed to syncronize package '${CATEGORY}/${NAME}'" >&2 ;\
-		echo "logfile: '${L}/sync.log'" >&2 ;\
+${package_prep}: ${package_sources}
+	@if ! build-prep ${CATEGORY}/${NAME}; then \
+		echo "error: failed to prepare package '${CATEGORY}/${NAME}'" >&2 ;\
+		echo "logfile: '${L}/prep.log'" >&2 ;\
 		exit 1 ;\
 	fi
-
 EOF
+
+	##
+	# This is a bit of a fun late-injection of the source archive for a
+	# package.  The core problem is that multiple packages may depend on
+	# the same sources, so we set up a separate rule for the source
+	# archive when processing the package, but only if an existing entry
+	# for that source does not exist.  We use the source name (as opposed
+	# to the package name) to track if the package already has a rule.  The
+	# whole thing really translates into something like
+	# foo_1_1_3_tar_bz2="http://some/path/to/foo-1.1.3.tar.bz2"
+	# All forms of URL translation and variable translation are done for us
+	# by fetch so that makedeps doesn't have any specific expectations on
+	# what the variable name should be.
+
+	for url in ${SOURCE_URI}; do
+		case "${url}" in
+		# Do not translate local paths into archives in BUILDER_SRCDIR
+		(file://*|/*)	echo "${url##file://}:";;
+
+		# Assume anything else with :// in the name is remote
+		(*://*)
+			var="$(build-fetch --var "${url}")"
+			if [ -z "$(eval echo -n "\$${var}")" ]; then
+				eval "${var}='${url}'"
+				echo "${BUILDER_SRCDIR}/$(build-fetch --name "${url}"):"
+				echo "\t@build-fetch \"${url}\""
+			fi
+			;;
+		esac
+	done
 
 	if [ "${CATEGORY}" = "${PROJECT_NAME}" ]; then
 		PACKAGES="${PACKAGES} ${package_make}"
-		PACKAGES_SYNC="${PACKAGES_SYNC} ${package_sync}"
+		PACKAGES_FETCH="${PACKAGES_FETCH} ${package_fetch}"
+		PACKAGES_PREP="${PACKAGES_PREP} ${package_fetch}"
 		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_compile}"
 		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package_archive}"
 		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_install}"
@@ -112,7 +174,8 @@ EOF
 done >> "${BUILDER_MAKEFILE}"
 
 cat<<EOF >> "${BUILDER_MAKEFILE}"
-packages_sync: ${PACKAGES_SYNC}
+packages_fetch: ${PACKAGES_FETCH}
+packages_prep: ${PACKAGES_PREP}
 packages_clean: ${PACKAGES_CLEAN}
 packages_compile: ${PACKAGES_COMPILE}
 packages_archive: ${PACKAGES_ARCHIVE}

@@ -1,0 +1,60 @@
+#!/usr/bin/env build
+
+echo "prepping: ${1}"
+
+eval $(build-query --environ "${1}")
+
+if [ ! -d "${L}" ]; then
+	mkdir -p "${L}"
+fi
+
+if [ -f "${L}/prep.log" ]; then
+	rm "${L}/prep.log"
+fi
+touch "${L}/prep.log"
+
+for dir in "${D}" "${S}"; do
+	if [ -d "${dir}" ]; then
+		mv "${dir}" "${dir}.old"
+		rm -rf "${dir}.old" &
+	fi
+	mkdir -p "${dir}"
+done
+
+wait
+
+if [ -d "${BUILDER_PKGDIR}/${NAME}/source" ]; then
+	if [ "$(command -v rsync)" ]; then
+		if ! rsync -rav --delete "${BUILDER_PKGDIR}/${NAME}/source/" "${S}"; then
+			die "failed to sync source to '${S}'"
+		fi
+	else
+		if ! cp -vadpR "${BUILDER_PKGDIR}/${NAME}/source" "${S}"; then
+			die "failed to copy source to '${S}'"
+		fi
+	fi >> "${L}/prep.log" 2>&1
+else
+	# FIXME this stuff needs a lot of work
+	for url in ${SOURCE_URI}; do
+		file="$(build-fetch --name "${url}")"
+		if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
+			die "source does not exist '${file}'"
+		fi
+
+		tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${L}/prep.log" 2>&1
+	done
+fi
+
+# FIXME wrap up the patch command with something more functional
+if [ ! -z "${PATCHES}" ]; then
+	for patch in ${PATCHES}; do
+		echo "${NAME}: applying patch '${patch}'" | tee -a "${L}/prep.log"
+		if ! patch -l -t -d "${S}" -p1 < "${F}/${NAME}-${VERSION}-${patch}.patch"; then
+			exit 1
+		fi >> "${L}/prep.log" 2>&1
+	done
+fi
+
+date --utc > "${W}/.prepped"
+
+# vim: filetype=sh

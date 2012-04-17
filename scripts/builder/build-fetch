@@ -1,0 +1,179 @@
+#!/usr/bin/env build
+
+build_fetch_clean()
+{
+	for arg in ${BUILD_FETCH_CLEAN}; do
+		if [ -d "${arg}" ]; then
+			rm -rf "${arg}"
+		elif [ -f "${arg}" ]; then
+			rm "${arg}"
+		fi
+	done
+}
+
+build_fetch_uri()
+{
+	echo -n "${1%%\?*}"
+}
+
+build_fetch_args()
+{
+	set -- $(echo "${1##$(build_fetch_uri "${1}")\?}"|sed -e 's/&/ /')
+	echo -n "${@}"
+}
+
+build_fetch_name()
+{
+	build_fetch_name_var="$(build_fetch_uri "${1}")"
+	build_fetch_name_var="${build_fetch_name_var##*/}"
+	build_fetch_name_var="${build_fetch_name_var%%\?*}"
+
+	build_fetch_name_complete="0"
+	case "${build_fetch_name_var}" in
+	(*.tar.*)		build_fetch_name_complete=1;;
+	(*.t[bgx]z)		build_fetch_name_complete=1;;
+	(*.tbz2)		build_fetch_name_complete=1;;
+	(*.tz)			build_fetch_name_complete=1;;
+	esac
+
+	if [ "${build_fetch_name_complete}" -eq "1" ]; then
+		echo -n "${build_fetch_name_var}"
+		unset build_fetch_name_var
+		return
+	fi
+
+	# The filename to archive has to be supplied on the SOURCES_URI, else
+	# we can't do anything about packages which share common sources.
+	build_fetch_name_var=
+	for arg in $(build_fetch_args "${1}"); do
+		case "${arg}" in
+		(archive=*) build_fetch_name_var="${arg##*=}";;
+		esac
+	done
+
+	if [ -z "${build_fetch_name_var}" ]; then
+		die "do not know how to store source from '${1}'"
+	fi
+
+	echo -n "${build_fetch_name_var}"
+	unset build_fetch_name_var
+}
+
+build_fetch_var()
+{
+	echo -n "$(build_fetch_name "${1}" | sed -e 's/[.-]/_/g')"
+}
+
+build_fetch_git()
+{
+	build_fetch_git_uri="$(build_fetch_uri "${1}")"
+	build_fetch_git_tag=
+	build_fetch_git_var=
+	for arg in $(build_fetch_args "${1}"); do
+		case "${arg}" in
+		(archive=*) build_fetch_git_var="${arg##*=}";;
+		(*)		 build_fetch_git_tag="${arg}";;
+		esac
+	done
+	if [ -z "${build_fetch_git_var}" ]; then
+		die "do not know how to store source from '${1}'"
+	fi
+
+	# We want to avoid avoid copying the repository and all of its history
+	# in order to perform a single build, unfortunately git does not give a
+	# clear-cut approach to checkout out a specific tag or the head of a
+	# specific branch, instead we have to jump through some hoops.
+	build_fetch_git_tmp="$(mktemp -d /tmp/builder_git.XXXXXX)"
+	build_fetch_git_dir="${build_fetch_git_var%%.t*}"
+	cd "${build_fetch_git_tmp}"
+	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_git_tmp}"
+	trap build_fetch_clean EXIT
+	if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
+		die "failed to clone git source at '${build_fetch_git_uri}'"
+	fi
+	if [ "${build_fetch_git_tag}" != "${build_fetch_git_uri}" ]; then
+		if ! cd "${build_fetch_git_dir}"; then
+			die "failed to change working directory to '${build_fetch_git_dir}'"
+		fi
+
+		if ! git fetch --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_tag}"; then
+			die "failed to fetch git branch/tag '${build_fetch_git_tag}'"
+		fi
+
+		if ! git checkout "${build_fetch_git_tag}"; then
+			die "failed to checkout git branch/tag '${build_fetch_git_tag}'"
+		fi
+	fi
+
+	cd "${build_fetch_git_tmp}"
+	tar caf "${build_fetch_git_var}" "${build_fetch_git_dir}"
+	mv "${build_fetch_git_var}" "${BUILDER_SRCDIR}/${build_fetch_git_var}"
+
+	if [ -d "${build_fetch_git_tmp}" ]; then
+		rm -rf "${build_fetch_git_tmp}"
+	fi
+
+	unset build_fetch_git_tmp
+	unset build_fetch_git_var
+	unset build_fetch_git_dir
+	unset build_fetch_git_uri
+	unset build_fetch_git_tag
+}
+
+build_fetch_http()
+{
+	build_fetch_http_file="$(build_fetch_name "${1}")"
+
+	if [ ! -d "${BUILDER_SRCDIR}" ]; then
+		mkdir -p "${BUILDER_SRCDIR}"
+	fi
+	if [ ! -f "${BUILDER_SRCDIR}/${build_fetch_http_file}" ]; then
+		build_fetch_http_tmp="$(mktemp /tmp/builder_${NAME}.XXXXXX)"
+		if command -v "wget" > /dev/null 2>&1; then
+			wget -O "${build_fetch_http_tmp}" "${1}" || return 1
+		fi
+
+		if mv "${build_fetch_http_tmp}" "${BUILDER_SRCDIR}/${build_fetch_http_file}"; then
+			exit 1
+		fi
+		unset build_fetch_http_tmp
+	fi
+
+	unset build_fetch_http_file
+}
+
+FETCH_ACTION="fetch"
+while [ "$#" -gt "0" ]; do
+	case "${1}" in
+	(-N|-name|--name)
+		FETCH_ACTION="name"
+		shift
+		;;
+	(-V|-var|--var|--variable)
+		FETCH_ACTION="var"
+		shift
+		;;
+	(-*)	die "unknown fetch action '${1}'";;
+	(*)	break;;
+	esac
+done
+
+case "${FETCH_ACTION}" in
+(name)	build_fetch_name "${1}"; exit $?;;
+(var)	build_fetch_var "${1}"; exit $?;;
+(fetch)	break;;
+(*)	die "unknown fetch action '${FETCH_ACTION}'";;
+esac
+
+echo "fetch: ${1}"
+
+# FIXME this stuff needs a lot of work
+case "${1}" in
+(git://*)	build_fetch_git "${1}";;
+(http://*)	build_fetch_http "${1}";;
+(ftp://*)	build_fetch_http "${1}";;
+# Everything else is death
+(*)		die "do not know how to handle '${1}'"
+esac
+
+# vim: filetype=sh
