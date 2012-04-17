@@ -123,6 +123,10 @@ import()
 	fi
 }
 
+if [ ! -z "${BUILDER_DEBUG}" ]; then
+	set -x
+fi
+
 ##
 # Check to see if we are wrapping a sub-command
 # FIXME support custom commands
@@ -162,8 +166,9 @@ while [ "$#" -gt "0" ]; do
 		shift 1
 		;;
 	(-d|-debug|--debug)
-		shift 1
-		DEBUG=1
+		BUILDER_DEBUG=1
+		export BUILDER_DEBUG
+		set -x
 		;;
 	(-*)	echo "error: unknown option '${1}'" >&2
 		echo "try '${0} --help'" >&2
