@@ -56,7 +56,7 @@ mkdir -p "${D}"
 if [ -f "${L}/compile.log" ]; then
 	rm "${L}/compile.log" || exit 1
 fi
-env >> "${E}/compile.env"
+set >> "${E}/compile.env"
 
 cd "${S}"
 pkg_compile >> "${L}/compile.log" 2>&1
