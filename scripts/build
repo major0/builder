@@ -328,4 +328,4 @@ set -- ${packages}
 unset packages
 
 # exec out to make with the appropriate Makefile
-exec make ${MAKE_OPTS} -r -f "${BUILDER_MAKEFILE}" "${@}"
+make ${MAKE_OPTS} -r -f "${BUILDER_MAKEFILE}" "${@}"
