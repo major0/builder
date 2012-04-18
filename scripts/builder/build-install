@@ -3,7 +3,9 @@
 echo "installing: ${1}"
 eval $(build query --environ "${1}")
 
-[ -f "${BUILDER_ATFDIR}/${CATEGOR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ] || die "archive does not exist for package '${NAME}'"
+if [ ! -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
+	die "archive does not exist for package '${NAME}'"
+fi
 if [ ! -d "${SYSROOT}" ]; then
 	mkdir -p "${SYSROOT}" || die "failed to create system root @ '${SYSROOT}'"
 fi
