@@ -26,17 +26,17 @@ case "${ARCHIVE_FORMAT}" in
 (*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
 esac
 
-if [ ! -d "${BUILDER_ATFDIR}" ]; then
-	mkdir -p "${BUILDER_ATFDIR}"
+if [ ! -d "${BUILDER_ATFDIR}/${CATEGORY}" ]; then
+	mkdir -p "${BUILDER_ATFDIR}/${CATEGORY}"
 fi
 
 cd "${D}"
 tar -cvf "${ARCHIVE_TMP1}" .  > "${L}/archive.log" 2>&1
 ${ARCHIVE_COMPRESSOR} "${ARCHIVE_TMP1}" > "${ARCHIVE_TMP2}" 2>> "${L}/archive.log"
-if [ -f "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
-	rm -f "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
+	rm -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
 fi
-mv -v "${ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" >> "${L}/archive.log" 2>&1
-touch -r "${W}/.compiled" "${BUILDER_ATFDIR}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+mv -v "${ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" >> "${L}/archive.log" 2>&1
+touch -r "${W}/.compiled" "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
 
 # vim: filetype=sh
