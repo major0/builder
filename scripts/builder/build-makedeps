@@ -6,7 +6,7 @@ all: packages_archive
 all_fetch: packages_fetch
 all_prep: packages_prep
 all_clean: packages_clean sysroot_clean
-all_distclean: packages_distclean sysroot_clean artifacts_clean tooldir_clean
+all_distclean: tmpdir_clean sysroot_clean artifacts_clean tooldir_clean
 all_compile: packages_compile
 all_archive: packages_archive
 all_install: packages_install
@@ -14,6 +14,8 @@ all_makedeps:
 
 sysroot_clean:
 	@if [ -d "${SYSROOT}" ]; then echo cleaning: sysroot;rm -rf "${SYSROOT}";fi
+tmpdir_clean:
+	@if [ -d "${BUILDER_TMPDIR}" ]; then echo cleaning: tmpdir; (cd "${BUILDER_TMPDIR}" && rm -rf *);fi
 tooldir_clean:
 	@if [ -d "${TOOLDIR}" ]; then echo cleaning: tooldir;rm -rf "${TOOLDIR}";fi
 artifacts_clean:
@@ -29,7 +31,6 @@ PACKAGES_CLEAN=
 PACKAGES_COMPILE=
 PACKAGES_ARCHIVE=
 PACKAGES_INSTALL=
-PACKAGES_DISTCLEAN=
 for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	if ! eval $(build query --environ "${package}"); then
 		die "in package '${package}'"
@@ -87,7 +88,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 		elif [ ! -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules" ]; then
 			die "no Buildrules for '${pkg_dep}'"
 		fi
-		package_deps="${package_deps} ${BUILDER_PKGDIR}/${pkg_dep}/build/.installed"
+		package_deps="${package_deps} ${BUILDER_TMPDIR}/${pkg_dep}/build/.installed"
 	done
 
 cat <<EOF
@@ -101,8 +102,6 @@ ${package_make}_fetch: ${package_sources}
 ${package_make}_makedeps:
 ${package_make}_clean:
 	@build-clean ${CATEGORY}/${NAME}
-${package_make}_distclean:
-	@build-distclean ${CATEGORY}/${NAME}
 ${package_install}: ${package_archive}
 	@build-install ${CATEGORY}/${NAME}
 ${package_archive}: ${package_compile}
@@ -163,8 +162,6 @@ EOF
 		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package_archive}"
 		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_install}"
 	fi
-
-	PACKAGES_DISTCLEAN="${PACKAGES_DISTCLEAN} ${package_make}_distclean"
 	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
 done >> "${BUILDER_MAKEFILE}"
 
@@ -175,7 +172,6 @@ packages_clean: ${PACKAGES_CLEAN}
 packages_compile: ${PACKAGES_COMPILE}
 packages_archive: ${PACKAGES_ARCHIVE}
 packages_install: ${PACKAGES_INSTALL}
-packages_distclean: ${PACKAGES_DISTCLEAN}
 EOF
 
 # vim: filetype=sh

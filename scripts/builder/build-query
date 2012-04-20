@@ -127,7 +127,7 @@ shift
 # These variables are used by the Buildrules and fundmentally make up the
 # majority of their environ data
 F="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/files"
-W="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/build"
+W="${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/build"
 L="${W}/log"
 E="${W}/env"
 T="${W}/tmp"

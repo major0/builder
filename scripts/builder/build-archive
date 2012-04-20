@@ -14,8 +14,8 @@ cleanup()
 trap cleanup EXIT
 set -e
 
-ARCHIVE_TMP1="$(mktemp /tmp/${NAME}-${VERSION}.XXXXXXXX)"
-ARCHIVE_TMP2="$(mktemp /tmp/${NAME}-${VERSION}.XXXXXXXX)"
+ARCHIVE_TMP1="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}.XXXXXXXX")"
+ARCHIVE_TMP2="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}.XXXXXXXX")"
 
 [ -f "${ARCHIVE_TMP1}" ] || die "failed to create temporary archive for package '${NAME}'"
 [ -f "${ARCHIVE_TMP2}" ] || die "failed to create temporary archive for package '${NAME}'"
