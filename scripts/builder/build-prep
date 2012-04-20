@@ -55,6 +55,4 @@ if [ ! -z "${PATCHES}" ]; then
 	done
 fi
 
-date --utc > "${W}/.prepped"
-
 # vim: filetype=sh

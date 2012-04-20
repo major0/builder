@@ -28,5 +28,6 @@ else
 fi
 
 ${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" | tar x
+date --utc > "${W}/.installed"
 
 # vim: filetype=sh

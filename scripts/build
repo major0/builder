@@ -55,6 +55,10 @@ Commands
 		configure with predefined CONFIG_OPTS, and then perform
 		a make with MAKE_OPTS.
 
+  archive	Perform a 'make install' of the package into the package's
+		sysroot and then produce an archive of the package and store
+		that in the build-tree's artifact directory.
+
   install	Install a package into the build-tree's sysroot (as opposed to
 		a packages sysroot or into the build-host's root).  This is
 		done automatically for any build-dependent packages.
@@ -257,7 +261,7 @@ PATH="${BUILDER_LIBDIR}:${PATH}"
 export PATH
 
 # if we aren't given an action then we do everything
-ACTION="compile"
+ACTION="archive"
 if [ "$#" -gt "0" ]; then
 	ACTION="${1}"
 	shift 1
