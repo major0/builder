@@ -28,6 +28,5 @@ else
 fi
 
 ${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" | tar x
-cp -a "${W}/.compiled" "${W}/.installed"
 
 # vim: filetype=sh

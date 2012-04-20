@@ -8,6 +8,17 @@ unset MAKEFLAGS
 PATH="${TOOLDIR}/bin:${PATH}"
 export PATH
 
+ARCHIVE_TMP1=
+ARCHIVE_TMP2=
+cleanup()
+{
+	[ -f "${ARCHIVE_TMP1}" ] && rm -f "${ARCHIVE_TMP1}"
+	[ -f "${ARCHIVE_TMP2}" ] && rm -f "${ARCHIVE_TMP2}"
+	exit 0
+}
+trap cleanup EXIT
+set -e
+
 pkg_compile()
 {
 	# FIXME these defaults need moved elsewhere
@@ -60,6 +71,33 @@ set >> "${E}/compile.env"
 
 cd "${S}"
 pkg_compile >> "${L}/compile.log" 2>&1
-date --utc > "${W}/.compiled"
+cd "${W}"
+rm -rf "${S}"
+
+ARCHIVE_TMP1="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}.XXXXXXXX")"
+ARCHIVE_TMP2="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}.XXXXXXXX")"
+
+[ -f "${ARCHIVE_TMP1}" ] || die "failed to create temporary archive for package '${NAME}'"
+[ -f "${ARCHIVE_TMP2}" ] || die "failed to create temporary archive for package '${NAME}'"
+
+case "${ARCHIVE_FORMAT}" in
+(tbz2|tar.bz2)	ARCHIVE_COMPRESSOR="bzip2 -cv";;
+(tgz|tar.gz)	ARCHIVE_COMPRESSOR="gzip -cv";;
+(*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
+esac
+
+if [ ! -d "${BUILDER_ATFDIR}/${CATEGORY}" ]; then
+	mkdir -p "${BUILDER_ATFDIR}/${CATEGORY}"
+fi
+
+cd "${D}"
+tar -cvf "${ARCHIVE_TMP1}" .  > "${L}/archive.log" 2>&1
+${ARCHIVE_COMPRESSOR} "${ARCHIVE_TMP1}" > "${ARCHIVE_TMP2}" 2>> "${L}/archive.log"
+if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
+	rm -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+fi
+mv -v "${ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" >> "${L}/archive.log" 2>&1
+cd "${W}"
+rm -rf "${D}"
 
 # vim: filetype=sh

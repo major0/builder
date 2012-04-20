@@ -5,10 +5,9 @@ cat >"${BUILDER_MAKEFILE}" <<EOF
 all: packages_archive
 all_fetch: packages_fetch
 all_prep: packages_prep
-all_clean: packages_clean sysroot_clean
+all_clean: tmpdir_clean sysroot_clean
 all_distclean: tmpdir_clean sysroot_clean artifacts_clean tooldir_clean
 all_compile: packages_compile
-all_archive: packages_archive
 all_install: packages_install
 all_makedeps:
 
@@ -29,7 +28,6 @@ PACKAGES_PREP=
 PACKAGES_SOURCES=
 PACKAGES_CLEAN=
 PACKAGES_COMPILE=
-PACKAGES_ARCHIVE=
 PACKAGES_INSTALL=
 for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	if ! eval $(build query --environ "${package}"); then
@@ -39,7 +37,6 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	package_make="$(echo "${package}"|tr '/-' '__')"
 	package_archive="${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
 	package_install="${W}/.installed"
-	package_compile="${W}/.compiled"
 	package_prep="${W}/.prepped"
 	package_logdir="${L}"
 
@@ -96,21 +93,14 @@ cat <<EOF
 # ${CATEGORY}/${NAME} - ${DESCRIPTION}
 ${package_make}: ${package_archive}
 ${package_make}_install: ${package_install}
-${package_make}_archive: ${package_archive}
-${package_make}_compile: ${package_compile}
+${package_make}_compile: ${package_archive}
 ${package_make}_fetch: ${package_sources}
 ${package_make}_makedeps:
 ${package_make}_clean:
 	@build-clean ${CATEGORY}/${NAME}
 ${package_install}: ${package_archive}
 	@build-install ${CATEGORY}/${NAME}
-${package_archive}: ${package_compile}
-	@if ! build-archive ${CATEGORY}/${NAME}; then \
-		echo "error: failed to archive package '${CATEGORY}/${NAME}'" >&2 ;\
-		echo "logfile: '${L}/archive.log'" >&2 ;\
-		exit 1; \
-	fi
-${package_compile}: ${package_prep}${package_deps}
+${package_archive}: ${package_prep}${package_deps}
 	@if ! build-compile ${CATEGORY}/${NAME}; then \
 		echo "error: failed to compile package '${CATEGORY}/${NAME}'" >&2 ;\
 		echo "logfile: '${L}/compile.log'" >&2 ;\
@@ -158,8 +148,7 @@ EOF
 		PACKAGES="${PACKAGES} ${package_make}"
 		PACKAGES_SOURCES="${PACKAGES_SOURCES} ${package_sources}"
 		PACKAGES_PREP="${PACKAGES_PREP} ${package_prep}"
-		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_compile}"
-		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package_archive}"
+		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_archive}"
 		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_install}"
 	fi
 	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
@@ -170,7 +159,6 @@ packages_fetch: ${PACKAGES_SOURCES}
 packages_prep: ${PACKAGES_PREP}
 packages_clean: ${PACKAGES_CLEAN}
 packages_compile: ${PACKAGES_COMPILE}
-packages_archive: ${PACKAGES_ARCHIVE}
 packages_install: ${PACKAGES_INSTALL}
 EOF
 
