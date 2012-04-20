@@ -24,7 +24,7 @@ EOF
 
 PACKAGES=
 PACKAGES_PREP=
-PACKAGES_FETCH=
+PACKAGES_SOURCES=
 PACKAGES_CLEAN=
 PACKAGES_COMPILE=
 PACKAGES_ARCHIVE=
@@ -157,8 +157,8 @@ EOF
 
 	if [ "${CATEGORY}" = "${PROJECT_NAME}" ]; then
 		PACKAGES="${PACKAGES} ${package_make}"
-		PACKAGES_FETCH="${PACKAGES_FETCH} ${package_fetch}"
-		PACKAGES_PREP="${PACKAGES_PREP} ${package_fetch}"
+		PACKAGES_SOURCES="${PACKAGES_SOURCES} ${package_sources}"
+		PACKAGES_PREP="${PACKAGES_PREP} ${package_prep}"
 		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_compile}"
 		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package_archive}"
 		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_install}"
@@ -169,7 +169,7 @@ EOF
 done >> "${BUILDER_MAKEFILE}"
 
 cat<<EOF >> "${BUILDER_MAKEFILE}"
-packages_fetch: ${PACKAGES_FETCH}
+packages_fetch: ${PACKAGES_SOURCES}
 packages_prep: ${PACKAGES_PREP}
 packages_clean: ${PACKAGES_CLEAN}
 packages_compile: ${PACKAGES_COMPILE}
