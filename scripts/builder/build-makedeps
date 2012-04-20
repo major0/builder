@@ -56,7 +56,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	for url in ${SOURCE_URI}; do
 		case "${url}" in
 		# Do not translate local paths into archives in BUILDER_SRCDIR
-		(file://*|/*)	packages_sources="${package_sources} ${url##file://}";;
+		(file://*|/*)	package_sources="${package_sources} ${url##file://}";;
 
 		# Assume anything else with :// in the name is remote
 		(*://*)		pkg_src="$(build-fetch --name "${url}")"
