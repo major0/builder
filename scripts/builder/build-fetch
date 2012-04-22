@@ -67,6 +67,8 @@ build_fetch_var()
 build_fetch_git()
 {
 	build_fetch_git_uri="$(build_fetch_uri "${1}")"
+	build_fetch_git_uri="${build_fetch_git_uri#git://}"
+	build_fetch_git_uri="${build_fetch_git_uri%%\?*}"
 	build_fetch_git_tag=
 	build_fetch_git_var=
 	for arg in $(build_fetch_args "${1}"); do
@@ -87,7 +89,7 @@ build_fetch_git()
 	build_fetch_git_dir="${build_fetch_git_var%%.t*}"
 	cd "${build_fetch_git_tmp}"
 	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_git_tmp}"
-	trap build_fetch_clean EXIT
+	#trap build_fetch_clean EXIT
 	if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
 		die "failed to clone git source at '${build_fetch_git_uri}'"
 	fi
@@ -96,17 +98,24 @@ build_fetch_git()
 			die "failed to change working directory to '${build_fetch_git_dir}'"
 		fi
 
-		if ! git fetch --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_tag}"; then
-			die "failed to fetch git branch/tag '${build_fetch_git_tag}'"
-		fi
+		if [ ! -z "${build_fetch_git_tag}" ]; then
+			if ! git fetch --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_tag}"; then
+				die "failed to fetch git branch/tag '${build_fetch_git_tag}'"
+			fi
 
-		if ! git checkout "${build_fetch_git_tag}"; then
-			die "failed to checkout git branch/tag '${build_fetch_git_tag}'"
+			if ! git checkout "${build_fetch_git_tag}"; then
+				die "failed to checkout git branch/tag '${build_fetch_git_tag}'"
+			fi
 		fi
 	fi
 
 	cd "${build_fetch_git_tmp}"
-	tar caf "${build_fetch_git_var}" "${build_fetch_git_dir}"
+	tar cavf "${build_fetch_git_var}" "${build_fetch_git_dir}"
+
+	if [ ! -d "${BUILDER_SRCDIR}" ]; then
+		mkdir -p "${BUILDER_SRCDIR}"
+	fi
+
 	mv "${build_fetch_git_var}" "${BUILDER_SRCDIR}/${build_fetch_git_var}"
 
 	if [ -d "${build_fetch_git_tmp}" ]; then
