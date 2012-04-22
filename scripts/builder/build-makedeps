@@ -144,7 +144,7 @@ EOF
 			if [ -z "$(eval echo -n "\$${var}")" ]; then
 				eval "${var}='${url}'"
 				echo "${BUILDER_SRCDIR}/$(build-fetch --name "${url}"):"
-				echo "\t@build-fetch \"${url}\""
+				echo "	@build-fetch \"${url}\""
 			fi
 			;;
 		esac
