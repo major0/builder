@@ -94,7 +94,6 @@ cat <<EOF
 ${package_make}: ${package_archive}
 ${package_make}_fetch: ${package_sources}
 ${package_make}_prep: ${package_sources}
-${package_prep}: ${package_sources}
 	@if ! build-prep ${CATEGORY}/${NAME}; then \
 		echo "error: failed to prepare package '${CATEGORY}/${NAME}'" >&2 ;\
 		echo "logfile: '${L}/prep.log'" >&2 ;\
