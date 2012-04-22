@@ -154,7 +154,7 @@ EOF
 		PACKAGES="${PACKAGES} ${package_make}"
 		PACKAGES_SOURCES="${PACKAGES_SOURCES} ${package_sources}"
 		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_make}_compile"
-		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${packages_archive}"
+		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package_archive}"
 		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_install}"
 	fi
 	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
