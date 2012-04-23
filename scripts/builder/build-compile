@@ -38,7 +38,7 @@ import "${1}"
 # build script.  Perhaps builder_mkenv [prep|compile|archive|etc..]
 if [ -d "${D}" ]; then
 	mv "${D}" "${D}.old"
-	rm -rf "${D}" &
+	rm -rf "${D}.old" &
 fi
 [ -d "${S}" ] || mkdir -p "${S}"
 [ -d "${L}" ] || mkdir -p "${L}"
