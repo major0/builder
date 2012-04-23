@@ -225,12 +225,15 @@ export PROJECT_NAME ARCHIVE_FORMAT
 ARCH="${ARCH:-$(uname -m)}"
 VENDOR="${VENDOR:-pc}"
 PLATFORM="${PLATFORM:-$(uname -i|tr '[A-Z]' '[a-z]')}"
-LIBC="${LIBC:-gnu}"
-export ARCH VENDOR PLATFORM LIBC
+export ARCH VENDOR PLATFORM
 
 # FIXME We should be defaulting to the build platform for this data if the
 # target platform is unspecified
-CHOST="${ARCH}-${VENDOR}-${PLATFORM}-${LIBC}"
+CHOST="${ARCH}-${VENDOR}-${PLATFORM}"
+if [ ! -z "${LIBC}" ]; then
+	export LIBC
+	CHOST="${CHOST}-${LIBC}"
+fi
 export CHOST
 
 # If the MAKE_OPTS are not set then find the number of CPU's and set them.
