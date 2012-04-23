@@ -10,10 +10,6 @@ if [ ! -d "${SYSROOT}" ]; then
 	mkdir -p "${SYSROOT}" || die "failed to create system root @ '${SYSROOT}'"
 fi
 
-if [ ! -d "${TOOLDIR}" ]; then
-	mkdir -p "${TOOLDIR}" || die "failed to create tools root @ '${TOOLDIR}'"
-fi
-
 # FIXME the builder configs should decide the binpkg archive format.
 case "${ARCHIVE_FORMAT}" in
 (tbz2|tar.bz2)	ARCHIVE_DECOMPRESSOR="bzip2 -dc";;
@@ -21,13 +17,8 @@ case "${ARCHIVE_FORMAT}" in
 (*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
 esac
 
-if [ ! -z "${TOOLCHAIN}" ]; then
-	cd "${TOOLDIR}"
-else
-	cd "${SYSROOT}"
-fi
+cd "${SYSROOT}"
 
 ${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" | tar x
-date --utc > "${W}/.installed"
 
 # vim: filetype=sh

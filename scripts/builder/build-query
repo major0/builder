@@ -102,7 +102,32 @@ while [ "$#" -gt "0" ]; do
 	shift
 done
 
-if [ "$#" -eq "0" ]; then
+if [ "${QUERY_ACTION}" = "toolchain" ]; then
+
+	if [ "$#" -gt "0" ] && [ "${1}" != "${CHOST}" ]; then
+		CROSS_COMPILE="${1}-"
+		CC="${CROSS_COMPILE}gcc"
+		CXX="${CROSS_COMPILE}g++"
+		shift
+	else
+		CROSS_COMPILE="${CHOST}-"
+		CC="${CROSS_COMPILE}gcc --sysroot=${SYSROOT}"
+		CXX="${CROSS_COMPILE}g++ --sysroot=${SYSROOT}"
+	fi
+
+	cat<<-EOF
+	CC="${CC}"
+	CXX="${CXX}"
+	CROSS_COMPILE="${CROSS_COMPILE}"
+	LD="${CROSS_COMPILE}ld"
+	AR="${CROSS_COMPILE}ar"
+	STRIP="${CROSS_COMPILE}strip"
+	RANDLIB="${CROSS_COMPILE}ranlib"
+	export CC CXX LD AR STRIP RANLIB
+	export CROSS_COMPILE
+	EOF
+	exit 0
+elif [ "$#" -eq "0" ]; then
 	die "no package specified"
 fi
 
@@ -160,7 +185,6 @@ SOURCE_URI=
 PATCHES=
 RDEPENDS=
 BDEPENDS=
-TOOLCHAIN=
 
 if [ -f "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules" ]; then
 	. "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"
@@ -171,7 +195,7 @@ fi
 if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
 	SOURCE_URI="file://${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
 fi
-export VERSION DESCRIPTION SOURCE_URI PATCHES BDEPENDS RDEPENDS TOOLCHAIN
+export VERSION DESCRIPTION SOURCE_URI PATCHES BDEPENDS RDEPENDS
 
 # Ironically, the source working directory can't be assigned until we source in
 # the Buildrules due to the dependancy on the VERSION
@@ -179,11 +203,6 @@ S="${W}/${NAME}-${VERSION}"
 export S
 
 case "${QUERY_ACTION}" in
-(toolchain)	if [ -z "${TOOLCHAIN}" ]; then
-			exit 1
-		else
-			exit 0
-		fi;;
 (srcdir)	echo "${S}";;
 (bdeps)		echo "${BDEPENDS}";;
 (rdeps)		echo "${RDEPENDS}";;
@@ -206,7 +225,6 @@ case "${QUERY_ACTION}" in
 		cat<<-EOF
 		PROJECT_NAME="${PROJECT_NAME}"
 		TOPDIR="${TOPDIR}"
-		TOOLDIR="${TOOLDIR}"
 		SYSROOT="${SYSROOT}"
 		CHOST="${CHOST}"
 		ARCH="${ARCH}"
@@ -220,11 +238,6 @@ case "${QUERY_ACTION}" in
 		SOURCE_URI="${SOURCE_URI}"
 		EOF
 
-		if [ ! -z "${TOOLCHAIN}" ]; then
-			echo "TOOLCHAIN=\"${TOOLCHAIN}\""
-		else
-			echo "TOOLCHAIN="
-		fi
 		if [ ! -z "${PATCHES}" ]; then
 			echo "PATCHES=\"${PATCHES}\""
 		else

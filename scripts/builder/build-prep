@@ -4,24 +4,21 @@ echo "prepping: ${1}"
 
 eval $(build-query --environ "${1}")
 
-if [ ! -d "${L}" ]; then
-	mkdir -p "${L}"
+## Prep the build environment
+if [ -d "${S}" ]; then
+	mv "${S}" "${S}.old"
+	rm -rf "${S}.old" &
 fi
 
-if [ -f "${L}/prep.log" ]; then
-	rm "${L}/prep.log"
-fi
-touch "${L}/prep.log"
+[ -d "${S}" ] || mkdir -p "${S}"
+[ -d "${L}" ] || mkdir -p "${L}"
+[ -d "${E}" ] || mkdir -p "${E}"
+[ -d "${T}" ] || mkdir -p "${T}"
+[ -d "${D}" ] || mkdir -p "${D}"
 
-for dir in "${D}" "${S}"; do
-	if [ -d "${dir}" ]; then
-		mv "${dir}" "${dir}.old"
-		rm -rf "${dir}.old" &
-	fi
-	mkdir -p "${dir}"
-done
-
-wait
+## Prep the logging
+cat /dev/null > "${L}/prep.log"
+set > "${E}/prep.env"
 
 if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
 	if [ "$(command -v rsync)" ]; then
@@ -54,5 +51,12 @@ if [ ! -z "${PATCHES}" ]; then
 		fi >> "${L}/prep.log" 2>&1
 	done
 fi
+
+
+##
+# Technically everything should be done, but our removal of ${S}.old might still be
+# running, so wait for everything before we exit.
+wait
+
 
 # vim: filetype=sh

@@ -4,11 +4,17 @@ echo "cleaning: ${1}"
 
 eval $(build query --environ "${1}")
 
-rm -f "${W}/.installed"
-if [ -z "${TOOLCHAIN}" ]; then
-	if [ -d "${W}" ]; then
-		rm -rf "${W}"
+if [ -z "${NOCLEAN}" ]; then
+	if [ -e "${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}" ]; then
+		cd "${SYSROOT}"
+		cat "${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}" | xargs rm &
 	fi
+	if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
+		rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" &
+	fi
+	rm -rf "${W}" &
 fi
+
+wait
 
 # vim: filetype=sh

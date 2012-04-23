@@ -5,7 +5,7 @@ cat >"${BUILDER_MAKEFILE}" <<EOF
 all: packages_archive
 all_fetch: packages_fetch
 all_clean: tmpdir_clean sysroot_clean
-all_distclean: tmpdir_clean sysroot_clean artifacts_clean tooldir_clean
+all_distclean: tmpdir_clean sysroot_clean artifacts_clean
 all_prep: packages_prep
 all_compile: packages_compile
 all_archive: packages_archive
@@ -16,8 +16,6 @@ sysroot_clean:
 	@if [ -d "${SYSROOT}" ]; then echo cleaning: sysroot;rm -rf "${SYSROOT}";fi
 tmpdir_clean:
 	@if [ -d "${BUILDER_TMPDIR}" ]; then echo cleaning: tmpdir; (cd "${BUILDER_TMPDIR}" && rm -rf *);fi
-tooldir_clean:
-	@if [ -d "${TOOLDIR}" ]; then echo cleaning: tooldir;rm -rf "${TOOLDIR}";fi
 artifacts_clean:
 	@if [ -d "${BUILDER_ATFDIR}" ]; then echo cleaning: artifacts;rm -rf "${BUILDER_ATFDIR}";fi
 
@@ -37,7 +35,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 
 	package_make="$(echo "${package}"|tr '/-' '__')"
 	package_archive="${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
-	package_install="${W}/.installed"
+	package_install="${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}"
 	package_logdir="${L}"
 
 	package_sources="${RULESFILE}"
@@ -85,7 +83,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 		elif [ ! -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules" ]; then
 			die "no Buildrules for '${pkg_dep}'"
 		fi
-		package_deps="${package_deps} ${BUILDER_TMPDIR}/${pkg_dep}/build/.installed"
+		package_deps="${package_deps} ${SYSROOT}/var/db/binpkg/${pkg_dep}"
 	done
 
 cat <<EOF

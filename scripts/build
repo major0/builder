@@ -253,9 +253,8 @@ export BUILDER_ATFDIR BUILDER_LIBDIR BUILDER_TOPDIR
 export BUILDER_TMPDIR
 
 # Installation locations for the cross-tools and the target-root
-TOOLDIR="${TOOLDIR:-${BUILDER_TOPDIR}/toolchain}"
 SYSROOT="${SYSROOT:-${BUILDER_TOPDIR}/sysroot}"
-export TOOLDIR SYSROOT
+export SYSROOT
 
 PATH="${BUILDER_LIBDIR}:${PATH}"
 export PATH

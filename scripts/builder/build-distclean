@@ -1,0 +1,18 @@
+#!/usr/bin/env build
+
+echo "distcleaning: ${1}"
+
+eval $(build query --environ "${1}")
+
+if [ -e "${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}" ]; then
+	cd "${SYSROOT}"
+	cat "${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}" | xargs rm &
+fi
+if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
+	rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" &
+fi
+rm -rf "${W}" &
+
+wait
+
+# vim: filetype=sh
