@@ -236,6 +236,12 @@ if [ ! -z "${LIBC}" ]; then
 fi
 export CHOST
 
+# The project config hopefully specified this
+# FIXME else we need to detect it
+if [ ! -z "${CBUILD}" ]; then
+	export CBUILD
+fi
+
 # If the MAKE_OPTS are not set then find the number of CPU's and set them.
 if [ -z "${MAKE_OPTS}" ]; then
 	NUM_CPUS="$(awk '/^processor/{print$3}'< /proc/cpuinfo|sort|uniq|tail -n 1)"
