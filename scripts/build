@@ -66,6 +66,22 @@ Commands
 EOF
 }
 
+## mkenv
+# prepare the environment structure for the current package
+mkenv()
+{
+	[ -d "${S}" ] || mkdir -p "${S}"
+	[ -d "${L}" ] || mkdir -p "${L}"
+	[ -d "${E}" ] || mkdir -p "${E}"
+	[ -d "${T}" ] || mkdir -p "${T}"
+	[ -d "${D}" ] || mkdir -p "${D}"
+
+	if [ "$#" -gt "0" ]; then
+		cat /dev/null > "${L}/${1}.log"
+		set > "${E}/${1}.env"
+	fi
+}
+
 ## cleanup
 # deal with temporary junk when we exit
 cleanup()

@@ -9,16 +9,7 @@ if [ -d "${S}" ]; then
 	mv "${S}" "${S}.old"
 	rm -rf "${S}.old" &
 fi
-
-[ -d "${S}" ] || mkdir -p "${S}"
-[ -d "${L}" ] || mkdir -p "${L}"
-[ -d "${E}" ] || mkdir -p "${E}"
-[ -d "${T}" ] || mkdir -p "${T}"
-[ -d "${D}" ] || mkdir -p "${D}"
-
-## Prep the logging
-cat /dev/null > "${L}/prep.log"
-set > "${E}/prep.env"
+mkenv "prep"
 
 if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
 	if [ "$(command -v rsync)" ]; then

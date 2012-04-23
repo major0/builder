@@ -2,6 +2,7 @@
 
 echo "archiving: ${1}"
 eval $(build query --environ "${1}")
+mkenv "archive"
 
 ARCHIVE_TMP1=
 ARCHIVE_TMP2=

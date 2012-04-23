@@ -40,21 +40,12 @@ if [ -d "${D}" ]; then
 	mv "${D}" "${D}.old"
 	rm -rf "${D}.old" &
 fi
-[ -d "${S}" ] || mkdir -p "${S}"
-[ -d "${L}" ] || mkdir -p "${L}"
-[ -d "${E}" ] || mkdir -p "${E}"
-[ -d "${T}" ] || mkdir -p "${T}"
-[ -d "${D}" ] || mkdir -p "${D}"
-
-## Prep the logging
-cat /dev/null >  "${L}/compile.log"
-set > "${E}/compile.env"
+mkenv "compile"
 
 ## Build the source and install it into the DESTDIR
 # Ironically this is the heart of what the build-engine does, and yet it has
 # been reduced to the simplest component of the entire system.
-cd "${S}"
-pkg_compile >> "${L}/compile.log" 2>&1
+cd "${S}" && pkg_compile >> "${L}/compile.log" 2>&1
 
 ## Save Space!
 # At this point everything important should be installed into ${D}, and any
