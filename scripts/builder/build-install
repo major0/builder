@@ -20,5 +20,6 @@ esac
 cd "${SYSROOT}"
 
 ${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" | tar x
+touch "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 
 # vim: filetype=sh
