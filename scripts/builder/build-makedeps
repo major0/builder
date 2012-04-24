@@ -72,14 +72,14 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	package_deps=
 	for pkg_dep in ${BDEPENDS}; do
 		if [ ! -d "${BUILDER_PKGDIR}/${pkg_dep}" ]; then
-			if [ ! -d "${BUILDER_PKGDIR}/${PROJECT_NAME}/${pkg_dep}" ]; then
+			if [ ! -d "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}" ]; then
 				if ! build query --exists "${pkg_dep}"; then
 					die "bad BDEPENDS in package '${package}'"
 				fi
-			elif [ ! -f "${BUILDER_PKGDIR}/${PROJECT_NAME}/${pkg_dep}/Buildrules" ]; then
+			elif [ ! -f "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}/Buildrules" ]; then
 				die "no Buildrules for '${pkg_dep}'"
 			fi
-			pkg_dep="${PROJECT_NAME}/${pkg_dep}"
+			pkg_dep="${PROJECT}/${pkg_dep}"
 		elif [ ! -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules" ]; then
 			die "no Buildrules for '${pkg_dep}'"
 		fi
@@ -148,7 +148,7 @@ EOF
 		esac
 	done
 
-	if [ "${CATEGORY}" = "${PROJECT_NAME}" ]; then
+	if [ "${CATEGORY}" = "${PROJECT}" ]; then
 		PACKAGES="${PACKAGES} ${package_make}"
 		PACKAGES_SOURCES="${PACKAGES_SOURCES} ${package_sources}"
 		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_make}_compile"

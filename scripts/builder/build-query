@@ -10,7 +10,7 @@ parse_pkg_name()
 	if [ "2${1#*/}" != "2${1}" ]; then
 		echo -n "${1}"
 	else
-		echo -n "${PROJECT_NAME}/${1}"
+		echo -n "${PROJECT}/${1}"
 	fi
 }
 
@@ -223,13 +223,12 @@ case "${QUERY_ACTION}" in
 # are already set in their environment.
 (environ)
 		cat<<-EOF
-		PROJECT_NAME="${PROJECT_NAME}"
-		TOPDIR="${TOPDIR}"
+		PROJECT="${PROJECT}"
+		TOPDIR="${BUILDER_TOPDIR}"
 		SYSROOT="${SYSROOT}"
+		CBUILD="${CBUILD}"
 		CHOST="${CHOST}"
 		ARCH="${ARCH}"
-		VENDOR="${VENDOR}"
-		PLATFORM="${PLATFORM}"
 		NAME="${NAME}"
 		CATEGORY="${CATEGORY}"
 		RULESFILE="${RULESFILE}"

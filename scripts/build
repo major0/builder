@@ -199,31 +199,49 @@ done
 
 ##
 # Done with arguments, time for setting up the enviroment for the build
-BUILDER_TOPDIR="${PWD}"
-while [ ! -z "${BUILDER_TOPDIR}" ]; do
-	[ -d "${BUILDER_TOPDIR}/.builder" ] && break
-	BUILDER_TOPDIR="${BUILDER_TOPDIR%/*}"
+TOPDIR="${PWD}"
+while [ ! -z "${TOPDIR}" ]; do
+	[ -d "${TOPDIR}/.builder" ] && break
+	TOPDIR="${TOPDIR%/*}"
 done
-if [ -z "${BUILDER_TOPDIR}" ]; then
+if [ -z "${TOPDIR}" ]; then
 	echo "error: current path not in a build-tree" >&2
 	exit 1
 fi
+
+# set the builtin defaults based on TOPDIR.  We export TOPDIR as BUILDER_TOPDIR
+# to avoid stepping on the potential usage of TOPDIR within package Makefiles
+BUILDER_TOPDIR="${TOPDIR}"
+BUILDER_PKGDIR="${TOPDIR}/packages"
+BUILDER_SRCDIR="${TOPDIR}/sources"
+BUILDER_ATFDIR="${TOPDIR}/artifacts"
+BUILDER_TMPDIR="${TOPDIR}/tmp"
+BUILDER_LIBDIR="${TOPDIR}/scripts/builder"
+export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR
+export BUILDER_ATFDIR BUILDER_LIBDIR BUILDER_TOPDIR
+export BUILDER_TMPDIR
+
+# We save the pre-config PATH as BUILDER_PATH to be used by downstream tools.
+BUILDER_PATH="${BUILDER_LIBDIR}:${PATH}"
+PATH="${BUILDER_PATH}"
+export BUILDER_PATH PATH
+
+# The default SYSROOT
+SYSROOT="${TOPDIR}/sysroot"
 
 ##
 # This may be a little bit confusing to most.  The core issue here is the
 # ability to deal with compiled-in defaults, user-defined defaults, environment
 # settings, and target settings.
-CFGDIR="${BUILDER_TOPDIR}/.builder"
+CFGDIR="${TOPDIR}/.builder"
 
 # grab the default and target settings if available, let the target settings
 # override the user-defined defaults.
-TARGET="default"
-if [ -f "${CFGDIR}/${TARGET}" ]; then
-	. "${CFGDIR}/${TARGET}"
+if [ -f "${CFGDIR}/config" ]; then
+	. "${CFGDIR}/config"
 fi
-CFGDIR="${BUILDER_TOPDIR}/.builder"
-TARGET="${BUILDER_TARGET:-${TARGET}}"
-if [ "${TARGET}" != "default" ]; then
+TARGET="${TARGET:-config}"
+if [ "${TARGET}" != "config" ]; then
 	if [ ! -f "${CFGDIR}/${TARGET}" ]; then
 		echo "error: invalid target '${TARGET}'" >&2
 		exit 1
@@ -231,32 +249,7 @@ if [ "${TARGET}" != "default" ]; then
 	. "${CFGDIR}/${TARGET}"
 fi
 export TARGET
-
-# Available to be set in the target
-PROJECT_NAME="${PROJECT_NAME:-platform}"
-ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-tar.bz2}"
-export PROJECT_NAME ARCHIVE_FORMAT
-
-# FIXME this stuff needs to be detected in a more reliable fashion
-ARCH="${ARCH:-$(uname -m)}"
-VENDOR="${VENDOR:-pc}"
-PLATFORM="${PLATFORM:-$(uname -i|tr '[A-Z]' '[a-z]')}"
-export ARCH VENDOR PLATFORM
-
-# FIXME We should be defaulting to the build platform for this data if the
-# target platform is unspecified
-CHOST="${ARCH}-${VENDOR}-${PLATFORM}"
-if [ ! -z "${LIBC}" ]; then
-	export LIBC
-	CHOST="${CHOST}-${LIBC}"
-fi
-export CHOST
-
-# The project config hopefully specified this
-# FIXME else we need to detect it
-if [ ! -z "${CBUILD}" ]; then
-	export CBUILD
-fi
+export SYSROOT
 
 # If the MAKE_OPTS are not set then find the number of CPU's and set them.
 if [ -z "${MAKE_OPTS}" ]; then
@@ -266,26 +259,25 @@ if [ -z "${MAKE_OPTS}" ]; then
 fi
 export MAKE_OPTS
 
-# set the builtin defaults based on the BUILDER_TOPDIR
-BUILDER_PKGDIR="${BUILDER_TOPDIR}/packages"
-BUILDER_SRCDIR="${BUILDER_TOPDIR}/sources"
-BUILDER_ATFDIR="${BUILDER_TOPDIR}/artifacts"
-BUILDER_TMPDIR="${BUILDER_TOPDIR}/tmp"
-BUILDER_LIBDIR="${BUILDER_TOPDIR}/scripts/builder"
+# Available to be set in the config
+PROJECT="${PROJECT:-platform}"
+ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-tar.bz2}"
+export PROJECT ARCHIVE_FORMAT
 
-export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR
-export BUILDER_ATFDIR BUILDER_LIBDIR BUILDER_TOPDIR
-export BUILDER_TMPDIR
+# If unspecified go ahead and ask gcc
+# FIXME there has to be a more robust way to figure this out.
+CBUILD="${CBUILD:-$(build-dumpmachine)}"
+export CBUILD
 
-# Installation locations for the cross-tools and the target-root
-SYSROOT="${SYSROOT:-${BUILDER_TOPDIR}/sysroot}"
-export SYSROOT
+# FIXME this stuff needs to be detected in a more reliable fashion
+ARCH="${ARCH:-$(uname -m)}"
+export ARCH
 
-PATH="${BUILDER_LIBDIR}:${PATH}"
-export PATH
+CHOST="${CHOST:-${CBUILD}}"
+export CHOST
 
 # if we aren't given an action then we do everything
-ACTION="archive"
+ACTION="install"
 if [ "$#" -gt "0" ]; then
 	ACTION="${1}"
 	shift 1
@@ -298,7 +290,7 @@ if [ ! -x "${BUILDER_LIBDIR}/build-${ACTION}" ]; then
 	exit 1
 fi
 
-# info is a special case
+# query is a special case
 # FIXME this is semi-busted
 if [ "${ACTION}" = "query" ]; then
 	exec "${BUILDER_LIBDIR}/build-query" "${@}"
