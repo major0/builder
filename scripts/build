@@ -146,13 +146,13 @@ fi
 ##
 # Check to see if we are wrapping a sub-command
 # FIXME support custom commands
-BUILD_COMMAND=
+BUILDER_COMMAND=
 if [ -f "${1}" ]; then
 	case "${1}" in
 	(*build-*)
-		BUILD_COMMAND="${1}"
+		BUILDER_COMMAND="${1}"
 		shift
-		. "${BUILD_COMMAND}"
+		. "${BUILDER_COMMAND}"
 		# exit with the exit status of the last command from within the
 		# sub-script.  This is normal shell behavior, we are just
 		# making it explicit.
