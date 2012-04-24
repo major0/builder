@@ -6,7 +6,7 @@ eval $(build query --environ "${1}")
 
 if [ -e "${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}" ]; then
 	cd "${SYSROOT}"
-	cat "${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}" | xargs rm &
+	cat "${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}" | xargs -0 rm &
 fi
 if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
 	rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" &
