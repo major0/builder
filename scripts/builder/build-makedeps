@@ -33,7 +33,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 
 	package_make="$(echo "${package}"|tr '/-' '__')"
 	package_archive="${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
-	package_install="${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}"
+	package_install="${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 	package_logdir="${L}"
 
 	package_sources="${RULESFILE}"
@@ -81,7 +81,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 		elif [ ! -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules" ]; then
 			die "no Buildrules for '${pkg_dep}'"
 		fi
-		package_deps="${package_deps} ${SYSROOT}/var/db/binpkg/${pkg_dep}"
+		package_deps="${package_deps} ${SYSROOT}/var/db/binpkgs/${pkg_dep}"
 	done
 
 cat <<EOF

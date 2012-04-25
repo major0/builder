@@ -5,9 +5,9 @@ echo "cleaning: ${1}"
 eval $(build query --environ "${1}")
 
 if [ -z "${NOCLEAN}" ]; then
-	if [ -e "${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}" ]; then
+	if [ -e "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
 		cd "${SYSROOT}"
-		cat "${SYSROOT}/var/db/binpkg/${CATEGORY}/${NAME}" | xargs -0 rm &
+		cat "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm &
 	fi
 	if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
 		rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" &
