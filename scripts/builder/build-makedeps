@@ -92,7 +92,7 @@ ${package_make}_makedeps:
 ${package_make}_fetch: ${package_sources}
 ${package_make}_clean:
 	@build-clean "${CATEGORY}/${NAME}"
-${package_archive}: ${package_sources}
+${package_archive}: ${package_sources} ${package_deps}
 	@build-package "${CATEGORY}/${NAME}"
 ${package_install}: ${package_archive}
 	@build-install "${CATEGORY}/${NAME}"
