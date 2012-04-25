@@ -1,10 +1,9 @@
 #!/usr/bin/env build
 
-echo "cleaning: ${1}"
-
 eval $(build query --environ "${1}")
 
 if [ -z "${NOCLEAN}" ]; then
+	echo "cleaning: ${1}"
 	if [ -e "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
 		cd "${SYSROOT}"
 		cat "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm &
