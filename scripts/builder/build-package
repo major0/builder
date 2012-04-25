@@ -5,18 +5,21 @@ ARCHIVE_TMP1=
 ARCHIVE_TMP2=
 exit_cleanup()
 {
-	[ -f "${ARCHIVE_TMP1}" ] && rm -f "${ARCHIVE_TMP1}"
-	[ -f "${ARCHIVE_TMP2}" ] && rm -f "${ARCHIVE_TMP2}"
-	exit 0
+	ret=$?
+
+	if [ ${ret} -ne 0 ]; then
+		echo "error: packaging failed for ${CATEGORY}/${NAME}" >&2
+		echo "logfile: '${PKG_LOGFILE}'" >&2
+	fi
+	if [ -f "${ARCHIVE_TMP1}" ]; then
+		rm -f "${ARCHIVE_TMP1}"
+	fi
+	if [ -f "${ARCHIVE_TMP2}" ]; then
+		rm -f "${ARCHIVE_TMP2}"
+	fi
+	exit ${ret}
 }
 trap exit_cleanup EXIT
-
-exit_error()
-{
-	echo "error: packaging failed for ${CATEGORY}/${NAME}" >&2
-	echo "logfile: '${PKG_LOGFILE}'" >&2
-}
-trap exit_error ERR
 
 pkg_compile()
 {
@@ -33,14 +36,18 @@ pkg_compile()
 	make ${MAKE_OPTS} && make DESTDIR="${D}" install
 }
 
+eval $(build-query --environ "${1}")
+
 ## Cleanup the build build environment
 for dir in "${S}" "${D}"; do
+	if [ ! -d "${dir}" ]; then
+		continue
+	fi
 	mv "${dir}" "${dir}.old"
 	find "${dir}.old" -delete &
 done
 
 echo "prepping: ${1}"
-eval $(build-query --environ "${1}")
 mkenv "prep"
 PKG_LOGFILE="${L}/prep.log"
 
