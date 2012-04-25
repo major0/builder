@@ -119,13 +119,19 @@ if [ "${QUERY_ACTION}" = "toolchain" ]; then
 	CC="${CC}"
 	CXX="${CXX}"
 	CROSS_COMPILE="${CROSS_COMPILE}"
-	LD="${CROSS_COMPILE}ld"
-	AR="${CROSS_COMPILE}ar"
-	STRIP="${CROSS_COMPILE}strip"
-	RANDLIB="${CROSS_COMPILE}ranlib"
-	export CC CXX LD AR STRIP RANLIB
-	export CROSS_COMPILE
 	EOF
+	export CC CXX CROSS_COMPILE
+
+	for cmd in ld ar strip ranlib; do
+		var="$(echo "${cmd}"|tr '[a-z]' '[A-Z]')"
+		if command -v "${CROSS_COMPILE}${cmd}" > /dev/null 2>&1; then
+			echo  "${var}=${CROSS_COMPILE}${cmd}"
+		else
+			echo "${var}=${cmd}"
+		fi
+		echo "export ${var}"
+	done
+
 	exit 0
 elif [ "$#" -eq "0" ]; then
 	die "no package specified"
