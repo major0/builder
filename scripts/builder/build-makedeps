@@ -6,8 +6,6 @@ all: packages_archive
 all_fetch: packages_fetch
 all_clean: tmpdir_clean packages_clean
 all_distclean: tmpdir_clean sysroot_clean artifacts_clean
-all_prep: packages_prep
-all_compile: packages_compile
 all_archive: packages_archive
 all_install: packages_install
 all_makedeps:
@@ -90,32 +88,14 @@ cat <<EOF
 ##
 # ${CATEGORY}/${NAME} - ${DESCRIPTION}
 ${package_make}: ${package_archive}
-${package_make}_fetch: ${package_sources}
-${package_make}_prep: ${package_sources}
-	@if ! build-prep ${CATEGORY}/${NAME}; then \
-		echo "error: failed to prepare package '${CATEGORY}/${NAME}'" >&2 ;\
-		echo "logfile: '${L}/prep.log'" >&2 ;\
-		exit 1 ;\
-	fi
-${package_make}_compile: ${package_make}_prep ${package_deps}
-	@if ! build-compile ${CATEGORY}/${NAME}; then \
-		echo "error: failed to compile package '${CATEGORY}/${NAME}'" >&2 ;\
-		echo "logfile: '${L}/compile.log'" >&2 ;\
-		exit 1 ;\
-	fi
-${package_make}_archive: ${package_archive}
-${package_archive}: ${package_make}_compile
-	@if ! build-archive ${CATEGORY}/${NAME}; then \
-		echo "error: failed to archive package '${CATEGORY}/${NAME}'" >&2 ;\
-		echo "logfile: '${L}/archive.log'" >&2 ;\
-		exit 1 ;\
-	fi
-${package_make}_install: ${package_install}
-${package_install}: ${package_archive}
-	@build-install ${CATEGORY}/${NAME}
 ${package_make}_makedeps:
+${package_make}_fetch: ${package_sources}
 ${package_make}_clean:
-	@build-clean ${CATEGORY}/${NAME}
+	@build-clean "${CATEGORY}/${NAME}"
+${package_archive}: ${package_sources}
+	@build-package "${CATEGORY}/${NAME}"
+${package_install}: ${package_archive}
+	@build-install "${CATEGORY}/${NAME}"
 EOF
 
 	##
@@ -151,8 +131,7 @@ EOF
 	if [ "${CATEGORY}" = "${PROJECT}" ]; then
 		PACKAGES="${PACKAGES} ${package_make}"
 		PACKAGES_SOURCES="${PACKAGES_SOURCES} ${package_sources}"
-		PACKAGES_COMPILE="${PACKAGES_COMPILE} ${package_make}_compile"
-		PACKAGES_ARCHIVE="${PACKAGES_ARCHIVE} ${package_archive}"
+		PACKAGES_PACKAGES="${PACKAGES_ARCHIVES} ${package_archive}"
 		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_install}"
 	fi
 	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
@@ -160,9 +139,7 @@ done >> "${BUILDER_MAKEFILE}"
 
 cat<<EOF >> "${BUILDER_MAKEFILE}"
 packages_fetch: ${PACKAGES_SOURCES}
-packages_prep: ${PACKAGES_SOURCES}
-packages_compile: ${PACKAGES_COMPILE}
-packages_archive: ${PACKAGES_ARCHIVE}
+packages_archive: ${PACKAGES_ARCHIVES}
 packages_install: ${PACKAGES_INSTALL}
 packages_clean: ${PACKAGES_CLEAN}
 EOF

@@ -1,0 +1,164 @@
+#!/usr/bin/env build
+set -e
+
+ARCHIVE_TMP1=
+ARCHIVE_TMP2=
+exit_cleanup()
+{
+	[ -f "${ARCHIVE_TMP1}" ] && rm -f "${ARCHIVE_TMP1}"
+	[ -f "${ARCHIVE_TMP2}" ] && rm -f "${ARCHIVE_TMP2}"
+	exit 0
+}
+trap exit_cleanup EXIT
+
+exit_error()
+{
+	echo "error: packaging failed for ${CATEGORY}/${NAME}" >&2
+	echo "logfile: '${PKG_LOGFILE}'" >&2
+}
+trap exit_error ERR
+
+pkg_compile()
+{
+	# FIXME these defaults need moved elsewhere
+	if [ -f "configure" ]; then
+		./configure	--host="${CHOST}"			\
+				--prefix="/usr" --mandir=/usr/share/man	\
+				--docdir=/usr/share/doc			\
+				--sysconfdir=/etc			\
+				${CONFIG_OPTS}
+	fi
+
+	# FIXME we need a bunch of make options in here
+	make ${MAKE_OPTS} && make DESTDIR="${D}" install
+}
+
+## Cleanup the build build environment
+for dir in "${S}" "${D}"; do
+	mv "${dir}" "${dir}.old"
+	find "${dir}.old" -delete &
+done
+
+echo "prepping: ${1}"
+eval $(build-query --environ "${1}")
+mkenv "prep"
+PKG_LOGFILE="${L}/prep.log"
+
+if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
+	if [ "$(command -v rsync)" ]; then
+		if ! rsync -rav --delete "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source/" "${S}"; then
+			die "failed to sync source to '${S}'"
+		fi
+	else
+		if ! cp -vadpR "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" "${S}"; then
+			die "failed to copy source to '${S}'"
+		fi
+	fi >> "${PKG_LOGFILE}" 2>&1
+else
+	# FIXME this stuff needs a lot of work
+	for url in ${SOURCE_URI}; do
+		file="$(build-fetch --name "${url}")"
+		if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
+			die "source does not exist '${file}'"
+		fi
+
+		tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1
+	done
+fi
+
+# FIXME wrap up the patch command with something more functional
+if [ ! -z "${PATCHES}" ]; then
+	for patch in ${PATCHES}; do
+		echo "${NAME}: applying patch '${patch}'" | tee -a "${PKG_LOGFILE}"
+		if ! patch -l -t -d "${S}" -p1 < "${F}/${NAME}-${VERSION}-${patch}.patch"; then
+			exit 1
+		fi >> "${PKG_LOGFILE}" 2>&1
+	done
+fi
+
+
+# Declare compilation variables before import as the package may potentially
+# overwrite this data, in particular the toolchain data is usually rewritten
+# within the toolchain/buildtools rule.
+echo "compiling: ${1}"
+eval "$(build-query --toolchain "${CHOST}")"
+mkenv "compile"
+PKG_LOGFILE="${L}/compile.log"
+
+# pkgconfig can be a right pita...
+PKG_CONFIG_LIBDIR="${SYSROOT}/usr/share/pkgconfig:${SYSROOT}/usr/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR PKG_CONFIG_PATH
+export PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"
+
+# Don't pass along the builder jobcontrol data to child processes
+unset MAKEFLAGS
+
+import "${1}"
+
+## Prep the build environment
+# Technically much of this should have been done in build-prep, and this sort
+# of duplication of work may be useful to make a function within the top-level
+# build script.  Perhaps builder_mkenv [prep|compile|archive|etc..]
+
+## Build the source and install it into the DESTDIR
+# Ironically this is the heart of what the build-engine does, and yet it has
+# been reduced to the simplest component of the entire system.
+cd "${S}" && pkg_compile >> "${PKG_LOGFILE}" 2>&1
+
+## Save Space!
+# At this point everything important should be installed into ${D}, and any
+# form of reruning the build will remove ${S} before prepping it for build, so
+# we might as well gut it now.  About the best option we could do would be to
+# avoid gutting this when being run in --debug mode.
+find "${S}" -delete &
+
+##
+# Generate the file index.  This is done as a 0 delimited file stored within
+# the destination filesystem.  This allows for easy checking of the installed
+# data as well as easy removal of individual binary packages from the sysroot.
+mkdir -p "${D}/var/db/binpkgs/${CATEGORY}"
+binpkg_list="$(mktemp "${T}/binpkg.XXXXXXXX")"
+if [ ! -e "${binpkg_list}" ]; then
+	die "failed to create package inventory"
+fi
+cd "${D}"
+find . -depth -print0 > "${binpkg_list}"
+mv "${binpkg_list}" "${D}/var/db/binpkgs/${CATEGORY}/${NAME}"
+
+echo "archiving: ${1}"
+mkenv "archive"
+PKG_LOGFILE="${L}/archive.log"
+
+ARCHIVE_TMP1="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}.XXXXXXXX")"
+ARCHIVE_TMP2="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}.XXXXXXXX")"
+
+[ -f "${ARCHIVE_TMP1}" ] || die "failed to create temporary archive for package '${NAME}'"
+[ -f "${ARCHIVE_TMP2}" ] || die "failed to create temporary archive for package '${NAME}'"
+
+case "${ARCHIVE_FORMAT}" in
+(tbz2|tar.bz2)	ARCHIVE_COMPRESSOR="bzip2 -cv";;
+(tgz|tar.gz)	ARCHIVE_COMPRESSOR="gzip -cv";;
+(*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
+esac
+
+if [ ! -d "${BUILDER_ATFDIR}/${CATEGORY}" ]; then
+	mkdir -p "${BUILDER_ATFDIR}/${CATEGORY}"
+fi
+
+cd "${D}"
+tar -cvf "${ARCHIVE_TMP1}" .  > "${PKG_LOGFILE}" 2>&1
+${ARCHIVE_COMPRESSOR} "${ARCHIVE_TMP1}" > "${ARCHIVE_TMP2}" 2>> "${PKG_LOGFILE}"
+if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
+	rm -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+fi
+mv -v "${ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" >> "${PKG_LOGFILE}" 2>&1
+cd "${W}"
+find "${D}" -delete &
+
+##
+# Technically everything should be done but we did throw a number of things
+# into the background during execution, so go ahead and wait to see if anything
+# is stil going.
+wait
+
+# vim: filetype=sh
