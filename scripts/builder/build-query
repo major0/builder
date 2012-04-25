@@ -243,6 +243,11 @@ case "${QUERY_ACTION}" in
 		SOURCE_URI="${SOURCE_URI}"
 		EOF
 
+		if [ ! -z "${NOCLEAN}" ]; then
+			echo "NOCLEAN=\"${NOCLEAN}\""
+		else
+			echo "NOCLEAN="
+		fi
 		if [ ! -z "${PATCHES}" ]; then
 			echo "PATCHES=\"${PATCHES}\""
 		else
