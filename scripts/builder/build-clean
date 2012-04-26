@@ -9,7 +9,9 @@ if [ -z "${NOCLEAN}" ]; then
 	fi
 	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
 		cd "${SYSROOT}"
-		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm &
+		# FIXME: we are failing to handle file collisions produce in
+		# this file.
+		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f &
 	fi
 	if [ -d "${W}" ]; then
 		rm -rf "${W}" &
