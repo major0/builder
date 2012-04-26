@@ -12,8 +12,13 @@ if [ -z "${NOCLEAN}" ]; then
 		rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" &
 	fi
 	rm -rf "${W}" &
-fi
 
-wait
+
+	wait
+
+	if [ "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+		rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
+	fi
+fi
 
 # vim: filetype=sh
