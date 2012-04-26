@@ -4,18 +4,20 @@ eval $(build query --environ "${1}")
 
 if [ -z "${NOCLEAN}" ]; then
 	echo "cleaning: ${1}"
-	if [ -e "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-		cd "${SYSROOT}"
-		cat "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm &
-	fi
 	if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
 		rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" &
 	fi
-	rm -rf "${W}" &
-
+	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+		cd "${SYSROOT}"
+		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm &
+	fi
+	if [ -d "${W}" ]; then
+		rm -rf "${W}" &
+	fi
 
 	wait
 
+	# Clobber our package marker.
 	if [ "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
 		rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 	fi

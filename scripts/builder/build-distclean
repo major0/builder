@@ -1,18 +1,10 @@
 #!/usr/bin/env build
 
 echo "distcleaning: ${1}"
-
 eval $(build query --environ "${1}")
-
-if [ -e "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-	cd "${SYSROOT}"
-	cat "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm &
-fi
-if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
-	rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" &
-fi
-rm -rf "${W}" &
-
-wait
+# Shutdown the NOCLEAN flag during DISTCLEAN
+NOCLEAN=
+export NOCLEAN
+build-clean "${1}"
 
 # vim: filetype=sh

@@ -5,19 +5,21 @@ cat >"${BUILDER_MAKEFILE}" <<EOF
 all: packages_archive
 all_fetch: packages_fetch
 all_clean: packages_clean
-all_distclean: tmpdir_clean sysroot_clean artifacts_clean
+all_distclean: packages_clean sysroot_clean artifacts_clean
 all_archive: packages_archive
 all_install: packages_install
 all_makedeps:
 
 sysroot_clean:
-	@if [ -d "${SYSROOT}" ]; then echo cleaning: sysroot;rm -rf "${SYSROOT}";fi
-tmpdir_clean:
-	@if [ -d "${BUILDER_TMPDIR}" ]; then echo cleaning: tmpdir; (cd "${BUILDER_TMPDIR}" && rm -rf *);fi
+	@if [ -d "${SYSROOT}" ]; then \
+		echo "cleaning: sysroot" ; \
+		(cd "${SYSROOT}" && find . -delete) ; \
+	fi
 artifacts_clean:
-	@if [ -d "${BUILDER_ATFDIR}" ]; then echo cleaning: artifacts;rm -rf "${BUILDER_ATFDIR}";fi
-
-
+	@if [ -d "${BUILDER_ATFDIR}" ]; then \
+		echo "cleaning: artifacts" ; \
+		(cd "${BUILDER_ATFDIR}" && find . -delete) ; \
+	fi
 EOF
 
 PACKAGES=
@@ -85,6 +87,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	done
 
 cat <<EOF
+
 ##
 # ${CATEGORY}/${NAME} - ${DESCRIPTION}
 ${package_make}: ${package_archive}
