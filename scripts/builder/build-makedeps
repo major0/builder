@@ -4,7 +4,7 @@ cat >"${BUILDER_MAKEFILE}" <<EOF
 # Some generic catchall rules
 all: packages_archive
 all_fetch: packages_fetch
-all_clean: tmpdir_clean packages_clean
+all_clean: packages_clean
 all_distclean: tmpdir_clean sysroot_clean artifacts_clean
 all_archive: packages_archive
 all_install: packages_install
