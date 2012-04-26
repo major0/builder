@@ -18,7 +18,7 @@ if [ -z "${NOCLEAN}" ]; then
 	wait
 
 	# Clobber our package marker.
-	if [ "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
 		rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 	fi
 fi
