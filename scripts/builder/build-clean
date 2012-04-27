@@ -1,6 +1,6 @@
 #!/usr/bin/env build
 
-eval $(build query --environ "${1}")
+eval $(build-query --environ "${1}")
 
 if [ -z "${NOCLEAN}" ]; then
 	echo "cleaning: ${1}"

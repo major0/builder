@@ -1,7 +1,7 @@
 #!/usr/bin/env build
 
 echo "installing: ${1}"
-eval $(build query --environ "${1}")
+eval $(build-query --environ "${1}")
 
 if [ ! -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
 	die "archive does not exist for package '${NAME}'"

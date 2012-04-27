@@ -112,7 +112,7 @@ import()
 	# There is a bit of a performance penalty here in that the query
 	# routine will source the build-rules to finish collecting data, so we
 	# end up sourcing the Buildrules twice.
-	eval $(build query -E "${1}")
+	eval $(build-query --environ "${1}")
 
 	# Source in the category Buildrules
 	if [ -f "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules" ]; then
@@ -343,7 +343,7 @@ export BUILDER_MAKEFILE
 packages=
 for package in "$@"; do
 	if [ "${package}" != "all" ]; then
-		package="$(build query --pkgname "${package}")"
+		package="$(build-query --pkgname "${package}")"
 	fi
 	package="$(echo "${package}"|tr '/-' '__')"
 	packages="${packages} ${package}_${ACTION}"

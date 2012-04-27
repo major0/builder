@@ -30,7 +30,11 @@ PACKAGES_INSTALL=
 PACKAGES_CLEAN=
 PACKAGES_DISTCLEAN=
 for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
-	if ! eval $(build query --environ "${package}"); then
+	if [ ! -f "${BUILDER_PKGDIR}/${package}/Buildrules" ]; then
+		error "no rulesfile for package '${package}'"
+		continue
+	fi
+	if ! eval $(build-query --environ "${package}"); then
 		die "in package '${package}'"
 	fi
 
@@ -74,7 +78,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	for pkg_dep in ${BDEPENDS}; do
 		if [ ! -d "${BUILDER_PKGDIR}/${pkg_dep}" ]; then
 			if [ ! -d "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}" ]; then
-				if ! build query --exists "${pkg_dep}"; then
+				if ! build-query --exists "${pkg_dep}"; then
 					die "bad BDEPENDS in package '${package}'"
 				fi
 			elif [ ! -f "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}/Buildrules" ]; then
