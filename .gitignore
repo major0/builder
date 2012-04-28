@@ -1,3 +1,5 @@
 tmp
 sources
 artifacts
+sysroot
+packages/*/*/source
