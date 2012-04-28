@@ -104,6 +104,7 @@ ${package_make}_distclean:
 	@build-distclean "${CATEGORY}/${NAME}"
 ${package_archive}: ${package_sources} ${package_deps}
 	@build-package "${CATEGORY}/${NAME}"
+${package_make}_install: ${package_install}
 ${package_install}: ${package_archive}
 	@build-install "${CATEGORY}/${NAME}"
 EOF
