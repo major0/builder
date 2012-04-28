@@ -72,8 +72,10 @@ while [ "$#" -gt "0" ]; do
 		QUERY_ACTION="srcdir";;
 	(-S|-summary|--summary)
 		QUERY_ACTION="summary";;
-	(-t|-toolchain|--toolchain)
+	(-toolchain|--toolchain)
 		QUERY_ACTION="toolchain";;
+	(-t|-topdir|--topdir)
+		QUERY_ACTION="topdir";;
 	(-T|-tmpdir|--tmpdir)
 		QUERY_ACTION="tmpdir";;
 	(-u|-source-uri|--src-uri)
@@ -180,6 +182,7 @@ case "${QUERY_ACTION}" in
 (logdir)	echo "${L}";exit 0;;
 (envdir)	echo "${E}";exit 0;;
 (tmpdir)	echo "${T}";exit 0;;
+(topdir)	echo "${BUILDER_TOPDIR}"; exit 0;;
 (destdir)	echo "${D}";exit 0;;
 esac
 
