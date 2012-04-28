@@ -133,10 +133,6 @@ import()
 	if [ -z "${DESCRIPTION}" ]; then
 		die "missing description in '${NAME}'"
 	fi
-
-	if [ -z "${SOURCE_URI}" ]; then
-		die "SOURCE_URI undefined and no source directory in '${CATEGORY}/${NAME}'"
-	fi
 }
 
 if [ ! -z "${BUILDER_DEBUG}" ]; then
