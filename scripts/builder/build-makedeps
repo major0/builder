@@ -5,12 +5,12 @@ cat >"${BUILDER_MAKEFILE}" <<EOF
 all: packages_archive
 all_fetch: packages_fetch
 all_clean: packages_clean
-all_distclean: packages_distclean sysroot_clean artifacts_clean
+all_distclean: sysroot_clean artifacts_clean
 all_archive: packages_archive
 all_install: packages_install
 all_makedeps:
 
-sysroot_clean:
+sysroot_clean: packages_distclean
 	@if [ -d "${SYSROOT}" ]; then \
 		echo "cleaning: sysroot" ; \
 		(cd "${SYSROOT}" && find . -delete) ; \
