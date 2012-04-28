@@ -15,7 +15,7 @@ sysroot_clean: packages_distclean
 		echo "cleaning: sysroot" ; \
 		(cd "${SYSROOT}" && find . -delete) ; \
 	fi
-artifacts_clean:
+artifacts_clean: packages_distclean
 	@if [ -d "${BUILDER_ATFDIR}" ]; then \
 		echo "cleaning: artifacts" ; \
 		(cd "${BUILDER_ATFDIR}" && find . -delete) ; \
