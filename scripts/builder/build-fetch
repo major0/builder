@@ -91,7 +91,7 @@ build_fetch_git()
 	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_git_tmp}"
 	#trap build_fetch_clean EXIT
 
-	case "${build_fetch_git_uri}"
+	case "${build_fetch_git_uri}" in
 	(*:*)	build_fetch_git_uri="git://${build_fetch_git_uri}";;
 	esac
 	if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
