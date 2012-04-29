@@ -92,7 +92,9 @@ build_fetch_git()
 	#trap build_fetch_clean EXIT
 
 	case "${build_fetch_git_uri}" in
-	(*:*)	build_fetch_git_uri="git://${build_fetch_git_uri}";;
+	(*:[0-9]*)	build_fetch_git_uri="git://${build_fetch_git_uri}";;
+	(*:*);;		# Git over ssh?
+	(*)		build_fetch_git_uri="git://${build_fetch_git_uri}";;
 	esac
 	if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
 		die "failed to clone git source at '${build_fetch_git_uri}'"
