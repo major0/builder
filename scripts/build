@@ -70,11 +70,12 @@ EOF
 # prepare the environment structure for the current package
 mkenv()
 {
-	[ -d "${S}" ] || mkdir -p "${S}"
-	[ -d "${L}" ] || mkdir -p "${L}"
-	[ -d "${E}" ] || mkdir -p "${E}"
-	[ -d "${T}" ] || mkdir -p "${T}"
-	[ -d "${D}" ] || mkdir -p "${D}"
+	for dir in "${W}" "${L}" "${E}" "${D}"; do
+		if [ ! -d "${dir}" ]; then
+			mkdir -p "${dir}"
+		fi
+	done
+	unset dir
 
 	if [ "$#" -gt "0" ]; then
 		cat /dev/null > "${L}/${1}.log"
