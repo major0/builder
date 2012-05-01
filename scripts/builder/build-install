@@ -19,6 +19,12 @@ esac
 
 cd "${SYSROOT}"
 
+if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+	echo "${NAME}: removing previous version"
+	cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f
+	rm "var/db/binpkgs/${CATEGORY}/${NAME}"
+fi
+
 ${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" | tar x
 touch "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 
