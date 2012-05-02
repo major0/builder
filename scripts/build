@@ -70,7 +70,7 @@ EOF
 # prepare the environment structure for the current package
 mkenv()
 {
-	for dir in "${W}" "${L}" "${E}" "${D}"; do
+	for dir in "${W}" "${L}" "${E}" "${D}" "${T}"; do
 		if [ ! -d "${dir}" ]; then
 			mkdir -p "${dir}"
 		fi
