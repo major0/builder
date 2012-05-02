@@ -137,7 +137,7 @@ if [ ! -e "${binpkg_list}" ]; then
 	die "failed to create package inventory"
 fi
 cd "${D}"
-find * -depth -type f -print0 > "${binpkg_list}"
+find * -depth \( ! -type d \) -print0 > "${binpkg_list}"
 mv "${binpkg_list}" "${D}/var/db/binpkgs/${CATEGORY}/${NAME}"
 
 echo "archiving: ${1}"
