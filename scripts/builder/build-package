@@ -41,14 +41,6 @@ pkg_compile()
 	make ${MAKE_OPTS} && make DESTDIR="${D}" install
 }
 
-# pkgconfig can be a right pita...
-PKG_CONFIG_LIBDIR="${SYSROOT}/usr/share/pkgconfig:${SYSROOT}/usr/lib/pkgconfig"
-export PKG_CONFIG_LIBDIR PKG_CONFIG_PATH
-export PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"
-
-# Don't pass along the builder jobcontrol data to child processes
-unset MAKEFLAGS
-
 import "${1}"
 
 ## Cleanup the build build environment
@@ -107,6 +99,16 @@ echo "compiling: ${1}"
 eval "$(build-query --toolchain "${CHOST}")"
 mkenv "compile"
 PKG_LOGFILE="${L}/compile.log"
+
+# pkgconfig can be a right pita...
+PKG_CONFIG_LIBDIR="${SYSROOT}/usr/share/pkgconfig:${SYSROOT}/usr/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR PKG_CONFIG_PATH
+export PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"
+
+# Don't pass along the builder jobcontrol data to child processes
+unset MAKEFLAGS
+
+import "${1}"
 
 ## Prep the build environment
 # Technically much of this should have been done in build-prep, and this sort
