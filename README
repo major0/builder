@@ -2,17 +2,18 @@ About
 =====
 
 The builder tool is designed to be generic build-engine for producing packages
-for nearly any Linux based platform.  A good portion of the tools design is
-modeled after the Gentoo Portage tool, though lacking actual package
-management.  The idea is to be able to produce packages using builder, and
-install them via whichever package manager is available for a given platform.
-To that end the builder tool tries to make as few assumptions as possible
-regarding final packages.
+for nearly any Linux based platform.  A good portion of the tool's design is
+modeled after the Gentoo ebuild tool (as opposed portage), though lacking
+actual package management.  The idea is to be able to produce packages using
+builder, and install them via whichever package manager is available for a
+given platform.  To that end the builder tool tries to make as few assumptions
+as possible regarding final packages.
 
 At the core of the builder design is the usage of a build repository which is
 fundementally detached from the sources it is building.  Unlike Gentoo's
 Portage, builder relies on being stored within an SCM to decide the versions of
-packages it is building as opposed to keeping multiple build rules.
+packages it is building as opposed to keeping multiple build rules in the same
+directory to handle different versions.
 
 What the builder tool is not is a package management tool.  It can not install
 packages into the hosted platform, it can not query installed packages, and it
@@ -28,15 +29,17 @@ The builder tool attempts to aid in the development workflow model attached to
 SCM's as opposed to being a central package management tool.  To this end
 builder does not utilize a global repository, but instead expects to find its
 config rules and build rules within the current working tree, much like an SCM.
-When invoking builder it will look for a .builder directory in the current
-directory, and every parent directorys, as a method for locating the top of the
-build-tree. The default configuration used by the builder tool is
-.builder/default, though alternate names may be supplied with the --type
-argument to the builder command.
+When invoking builder it will locate the top of the build tree by looking for a
+.builder the current-working directory and all parent directories.  The default
+configuration used by the builder tool is .builder/config, though alternate
+names may be supplied with the --type argument to the builder command.  This is
+useful for changing things like global CFLAGS to enable debugging, profiling,
+or tune optimizations.
 
-The builder tool maintains a job-engine modeled after the runsv service
-monitor.  Though not nearly as flexible, it can does support tracking build
-dependancies and building packages in parallel.
+The builder tool uses make as the job-engine allowing packages to be compiled
+in parallel.  The Makefile used by make is dynamically constructed by builder
+and the final output tries to conform to the very sparse POSIX Makefile
+standard.  To that end there are no GNU Make assumptions.
 
 In being able to work with a distributed development model, the builder system
 allows a developer to easily produce package builds from local copies of the a
@@ -75,13 +78,13 @@ Options
 Commands
 --------
 
-Most of the commands are actually actions, with the exception of the 'info'
+Most of the commands are actually actions, with the exception of the 'query'
 command.  Actions inner depend on one another and so requesting one action may
 result in multiple actions being taken.  When no action is specified for a
 package, then all actions are taken in the following order:
 info --build-deps -> sync -> compile -> package -> install
 
-  info		The info is used both internally by builder, as well as allows
+  query		The info is used both internally by builder, as well as allows
 		users to query build-tree packages.
 
 		options
@@ -116,10 +119,10 @@ info --build-deps -> sync -> compile -> package -> install
 		information necessary to convert the archive into alternate
 		package formats such as DEB and RPM.
 
-  install	Perform an install into the build-trees sysroot, as opposed to
-		the hosted platform root.  This allows builds to properly link
-		against build dependant libraries/headers w/out working within
-		a chroot/mock environment.  By default only build dependant
+  install	Perform an install into the sysroot, as opposed to the hosted
+		platform root.  This allows builds to properly link against
+		build dependant libraries/headers w/out working within a
+		chroot/mock environment.  By default only build dependant
 		packages are installed into the sysroot, though a developer may
 		install any package manually using this command.
 
@@ -131,9 +134,10 @@ a single descreet location, while allowing a project to change the tree layout.
 
 <topdir>/
 
-	.builder/		topdir marker and target rule container
-	    default		Default target rule
-	    <target>		Alternate target rules which include default
+	.builder/		topdir marker and target config container
+	    config		Default config rule
+	    <target>		Alternate config rules.  The default config is
+				always read before processing alternate rules.
 
 	sources/		Source code repository holding source archives
 				for various packages.  Caches of SCM aquired
@@ -163,6 +167,15 @@ a single descreet location, while allowing a project to change the tree layout.
 				from a local build.
 
 	packages/		Location to package definitions.
+	  <category>/		Package category.  This allows one to organize
+				packages into groups.  One of the nice things
+				about package categories is that they can have
+				an explicit Buildrule file which is
+				automatically read before reading per-package
+				Buildrules.
+	    .buildrules		Per-Category build rules shared by all packages
+				within this <category>.
+
 	    <package>/		Container for a single package.
 
 		Buildrules	Rules file defining package metadata and
@@ -188,18 +201,19 @@ a single descreet location, while allowing a project to change the tree layout.
 				is considered a stop-gap until a package can be
 				properly placed into a an SCM.
 
-		build/		The working directory used when processing a
-				build. Primarily this directory will contain a
-				tmp/ directory which the TMP and TMPDIR
-				environment variables will point to, as well as
-				a copy of the source data which will *always*
-				be in directory named <name>-<version>/. This
-				directory is created as necessary.
+
+	tmp/			Top-level temporary container.  This can be
+				mounted as a tmpfs under Linux to improve build
+				performance.
+	  <category>/
+	    <package>/
+		work/		The working directory used when processing a
+				build. Primarily this directory will contain
+				the package source(s).
 
 		install/	The temporary installation root for the
 				package and used to produce the final package
-				archive. This directory is created as
-				necessary.
+				archive.
 
 		log/		A temporary location which stores the build-log
 				information.  Journal files are also stored
@@ -208,3 +222,12 @@ a single descreet location, while allowing a project to change the tree layout.
 				useful when developing changes on a single
 				package out of a local source directory.  This
 				directory is created as necessary.
+
+		env/		Environment data for each stage of the build
+				process is stored here.  This is pimarily used
+				as a debugging aid.
+
+		tmp/		Per-package temporary data.  This exists simply
+				to give a package a private temp location
+				should they need it.  Nothing within the build
+				engine itself relies on this path.
