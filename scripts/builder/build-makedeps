@@ -9,6 +9,7 @@ all_distclean: sysroot_clean artifacts_clean
 all_archive: packages_archive
 all_install: packages_install
 all_makedeps:
+all_source:
 
 sysroot_clean: packages_distclean
 	@if [ -d "${SYSROOT}" ]; then \
@@ -98,6 +99,8 @@ cat <<EOF
 ${package_make}: ${package_archive}
 ${package_make}_makedeps:
 ${package_make}_fetch: ${package_sources}
+${package_make}_source: ${package_sources}
+	@build-source "${CATEGORY}/${NAME}"
 ${package_make}_clean:
 	@build-clean "${CATEGORY}/${NAME}"
 ${package_make}_distclean:

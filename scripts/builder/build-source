@@ -1,0 +1,56 @@
+#!/usr/bin/env build
+set -e
+
+echo "building source: ${1}"
+
+pkg_prep()
+{
+		return
+}
+
+import "${1}"
+
+## Cleanup the build build environment
+for dir in "${S}" "${D}"; do
+	if [ ! -d "${dir}" ]; then
+		continue
+	fi
+	mv "${dir}" "${dir}.old"
+	find "${dir}.old" -delete &
+done
+unset dir
+
+mkenv "prep"
+PKG_LOGFILE="${L}/source.log"
+
+if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
+	die "source already exists for '${CATEGORY}/${NAME}'"
+fi
+
+# FIXME this stuff needs a lot of work
+for url in ${SOURCE_URI}; do
+	file="$(build-fetch --name "${url}")"
+	if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
+		die "source does not exist '${file}'"
+	fi
+
+	tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1
+done
+
+cd "${W}" && pkg_prep >> "${PKG_LOGFILE}" 2>&1
+
+# FIXME wrap up the patch command with something more functional
+if [ ! -z "${PATCHES}" ]; then
+	for patch in ${PATCHES}; do
+		echo "${NAME}: applying patch '${patch}'" | tee -a "${PKG_LOGFILE}"
+		if ! patch -l -t -d "${S}" -p1 < "${F}/${NAME}-${VERSION}-${patch}.patch"; then
+			exit 1
+		fi >> "${PKG_LOGFILE}" 2>&1
+	done
+fi
+
+mv "${S}" "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" >> "${PKG_LOGFILE}" 2>&1
+
+wait
+
+# vim: filetype=sh
