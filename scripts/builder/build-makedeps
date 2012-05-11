@@ -2,21 +2,19 @@
 cat >"${BUILDER_MAKEFILE}" <<EOF
 ##
 # Some generic catchall rules
-all: packages_archive
-all_fetch: packages_fetch
-all_clean: packages_clean
-all_distclean: sysroot_clean artifacts_clean
-all_archive: packages_archive
-all_install: packages_install
+all: ${PROJECT}_archive
+all_fetch: ${PROJECT}_all_fetch
+all_archive: ${PROJECT}_all_archive
+all_install: ${PROJECT}_all_install
 all_makedeps:
 all_source:
 
-sysroot_clean: packages_distclean
+sysroot_clean:
 	@if [ -d "${SYSROOT}" ]; then \
 		echo "cleaning: sysroot" ; \
 		(cd "${SYSROOT}" && find . -delete) ; \
 	fi
-artifacts_clean: packages_distclean
+artifacts_clean:
 	@if [ -d "${BUILDER_ATFDIR}" ]; then \
 		echo "cleaning: artifacts" ; \
 		(cd "${BUILDER_ATFDIR}" && find . -delete) ; \
@@ -142,22 +140,36 @@ EOF
 		esac
 	done
 
-	if [ "${CATEGORY}" = "${PROJECT}" ]; then
-		PACKAGES="${PACKAGES} ${package_make}"
-		PACKAGES_SOURCES="${PACKAGES_SOURCES} ${package_sources}"
-		PACKAGES_PACKAGES="${PACKAGES_ARCHIVES} ${package_archive}"
-		PACKAGES_INSTALL="${PACKAGES_INSTALL} ${package_install}"
-	fi
+	CATEGORIES="${CATEGORIES} ${CATEGORY}"
+
+	eval "${CATEGORY}_SOURCES=\"\${${CATEGORY}_SOURCES} ${package_sources}\""
+	eval "${CATEGORY}_PACKAGES=\"\${${CATEGORY}_PACKAGES} ${package_archive}\""
+	eval "${CATEGORY}_INSTALL=\"\${${CATEGORY}_INSTALL} ${package_install}\""
+	eval "${CATEGORY}_CLEAN=\"\${${CATEGORY}_CLEAN} ${package_make}_clean\""
+	eval "${CATEGORY}_DISTCLEAN=\"\${${CATEGORY}_DISTCLEAN} ${package_make}_distclean\""
+
 	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
-	PACKAGES_DISTCLEAN="${PACKAGES_DISTCLEAN} ${package_make}_distclean"
 done >> "${BUILDER_MAKEFILE}"
 
+# FIXME It would have been nice to have not inserted the category if it was
+# already in the list.
+CATEGORIES="$(for CATEGORY in ${CATEGORIES};do echo "${CATEGORY}";done|sort|uniq)"
+
+for CATEGORY in ${CATEGORIES}; do
 cat<<EOF >> "${BUILDER_MAKEFILE}"
-packages_fetch: ${PACKAGES_SOURCES}
-packages_archive: ${PACKAGES_ARCHIVES}
-packages_install: ${PACKAGES_INSTALL}
-packages_clean: ${PACKAGES_CLEAN}
-packages_distclean: ${PACKAGES_DISTCLEAN}
+${CATEGORY}_all: ${CATEGORY}_archive
+${CATEGORY}_all_fetch: $(eval echo "\${${CATEGORY}_SOURCES}")
+${CATEGORY}_all_archive: $(eval echo "\${${CATEGORY}_PACKAGES}")
+${CATEGORY}_all_install: $(eval echo "\${${CATEGORY}_INSTALL}")
+${CATEGORY}_all_clean: $(eval echo "\${${CATEGORY}_CLEAN}")
+${CATEGORY}_all_distclean: $(eval echo "\${${CATEGORY}_DISTCLEAN}")
+
+EOF
+done
+
+cat<<EOF >> "${BUILDER_MAKEFILE}"
+all_clean: ${PACKAGES_CLEAN}
+all_distclean: sysroot_clean artifacts_clean
 EOF
 
 # vim: filetype=sh

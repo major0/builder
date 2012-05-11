@@ -299,34 +299,47 @@ if [ "${ACTION}" = "query" ]; then
 	exec "${BUILDER_LIBDIR}/build-query" "${@}"
 fi
 
+# If no target is given, then base our target on the current working directory,
+# falling back to "${PROJECT}/all" as our default.
 if [ "$#" -lt "1" ]; then
+	# Are we somewhere within the pkg structure.  If this test succeeds
+	# then we are at least in a category directory within the pkgdir.  Just
+	# being in pkgdir is not enough to change our default argument list
+	# handling.
 	NAME="all"
 	if [ "${PWD##${BUILDER_PKGDIR}/}" != "${PWD}" ]; then
-		name1="${PWD##${BUILDER_PKGDIR}/}"
-		if [ "${name1}" = "${name#*/*/}" ]; then
-			NAME="${name1}"
+		category="${PWD##${BUILDER_PKGDIR}/}"
+		if [ "${category%%/*}" != "${category}" ]; then
+			name="${category##*/}"
+			category="${category%%/*}"
+			NAME="${category}/${name%%/*}"
 		else
-			name2="${name1#*/*/}"
-			NAME="${name1%/${name2}}"
+			NAME="${category}/all"
 		fi
+		unset category
+		unset name
 	fi
 	set -- "${NAME}"
 fi
 
-if [ "${1}" != "all" ]; then
-	# sort/uniq the argument list
-	set -- $(for package in "$@"; do echo "${package}" ; done | sort | uniq)
-	for package in "$@"; do
-		# If all is specified anywhere in the argument list than just discard
-		# everything else.
-		if [ "${package}" = "all" ]; then
-			exec "${0}" "${ACTION}" "${package}"
-		fi
+for package in "$@"; do
+	# If all is specified anywhere in the argument list than just discard
+	# everything else.
+	if [ "${package}" = "all" ]; then
+		continue
+	fi
+	CATEGORY="${package%%/*}"
+	if [ ! -d "${BUILDER_PKGDIR}/${CATEGORY}" ]; then
+		die "invalid package category '${CATEGORY}'"
+	fi
+	if [ "${package##*/}" != "all" ]; then
 		if ! build-query --exists "${package}"; then
 			exit 1
 		fi
-	done
-fi
+	fi
+done
+# sort/uniq the argument list
+set -- $(for package in "$@"; do echo "${package}" ; done | sort | uniq)
 
 # build the Makefile
 trap cleanup EXIT
@@ -339,7 +352,7 @@ export BUILDER_MAKEFILE
 
 packages=
 for package in "$@"; do
-	if [ "${package}" != "all" ]; then
+	if [ "${package##*/}" != "all" ]; then
 		package="$(build-query --pkgname "${package}")"
 	fi
 	package="$(echo "${package}"|tr '/-' '__')"
