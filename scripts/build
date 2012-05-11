@@ -310,7 +310,7 @@ if [ "$#" -lt "1" ]; then
 	if [ "${PWD##${BUILDER_PKGDIR}/}" != "${PWD}" ]; then
 		category="${PWD##${BUILDER_PKGDIR}/}"
 		if [ "${category%%/*}" != "${category}" ]; then
-			name="${category##*/}"
+			name="${category#*/}"
 			category="${category%%/*}"
 			NAME="${category}/${name%%/*}"
 		else
