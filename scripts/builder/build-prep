@@ -12,6 +12,7 @@ fi
 mkenv "prep"
 
 if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
+	echo "using source: '${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
 	if [ "$(command -v rsync)" ]; then
 		if ! rsync -rav --delete "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source/" "${S}"; then
 			die "failed to sync source to '${S}'"
