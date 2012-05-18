@@ -53,12 +53,11 @@ for dir in "${S}" "${D}"; do
 done
 unset dir
 
-echo "prepping: ${1}"
 mkenv "prep"
 PKG_LOGFILE="${L}/prep.log"
 
 if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
-	echo "source: '${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
+	echo "prepping ${1} from source: '${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
 	if [ "$(command -v rsync)" ]; then
 		if ! rsync -rav --delete "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source/" "${S}"; then
 			die "failed to sync source to '${S}'"
@@ -75,7 +74,7 @@ else
 		if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
 			die "source does not exist '${file}'"
 		fi
-		echo "source: '${BUILDER_SRCDIR}/${file}"
+		echo "prepping ${1} from source: '${BUILDER_SRCDIR}/${file}"
 
 		tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1
 	done
