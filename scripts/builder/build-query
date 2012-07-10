@@ -8,9 +8,9 @@ parse_pkg_name()
 	fi
 
 	if [ "2${1#*/}" != "2${1}" ]; then
-		printf "${1}"
+		printf '%s' "${1}"
 	else
-		printf "${PROJECT}/${1}"
+		printf '%s' "${PROJECT}/${1}"
 	fi
 }
 
@@ -21,7 +21,7 @@ parse_name()
 	fi
 
 	set -- "$(parse_pkg_name "${1}")"
-	printf "${1#*/}"
+	printf '%s' "${1#*/}"
 }
 
 parse_category()
@@ -31,7 +31,7 @@ parse_category()
 	fi
 
 	set -- "$(parse_pkg_name "${1}")"
-	printf "${1%/*}"
+	printf '%s' "${1%/*}"
 }
 
 QUERY_ACTION="summary"
