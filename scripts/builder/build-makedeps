@@ -21,13 +21,7 @@ artifacts_clean:
 	fi
 EOF
 
-PACKAGES=
-PACKAGES_SOURCES=
-PACKAGES_COMPILE=
-PACKAGES_ARCHIVE=
-PACKAGES_INSTALL=
 PACKAGES_CLEAN=
-PACKAGES_DISTCLEAN=
 for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	if [ ! -f "${BUILDER_PKGDIR}/${package}/Buildrules" ]; then
 		error "no rulesfile for package '${package}'"
