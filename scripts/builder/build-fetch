@@ -61,7 +61,7 @@ build_fetch_name()
 
 build_fetch_var()
 {
-	printf "$(build_fetch_name "${1}" | sed -e 's/[.-]/_/g')"
+	printf "$(build_fetch_name "${1}" | sed -e 's/[+.-]/_/g')"
 }
 
 build_fetch_git()
