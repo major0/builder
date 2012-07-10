@@ -34,7 +34,14 @@ for url in ${SOURCE_URI}; do
 		die "source does not exist '${file}'"
 	fi
 
-	tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1
+	case "${file}" in
+	(*.tar.bz2|*.tbz2|*.tar.xz|*.txz|*.tar.Z|*.tar.z|*.tz|*.tar.gz|*.tgz)
+		tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	(*.zip)
+		unzip "${BUILDER_SRCDIR}/${file}" -d "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	(*.jar)
+		cp "${BUILDER_SRCDIR}/${file}" "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	esac
 done
 
 cd "${W}" && pkg_prep >> "${PKG_LOGFILE}" 2>&1

@@ -34,6 +34,7 @@ build_fetch_name()
 	(*.t[bgx]z)		build_fetch_name_complete=1;;
 	(*.tbz2)		build_fetch_name_complete=1;;
 	(*.tz)			build_fetch_name_complete=1;;
+	(*.zip|*.jar)		build_fetch_name_complete=1;;
 	esac
 
 	if [ "${build_fetch_name_complete}" -eq "1" ]; then
