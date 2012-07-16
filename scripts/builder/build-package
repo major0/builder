@@ -38,7 +38,8 @@ pkg_compile()
 	fi
 
 	# FIXME we need a bunch of make options in here
-	make ${MAKE_OPTS} && make DESTDIR="${D}" install
+	make ${MAKE_OPTS}
+	make DESTDIR="${D}" install
 }
 
 import "${1}"
@@ -87,7 +88,8 @@ else
 	done
 fi
 
-cd "${W}" && pkg_prep >> "${PKG_LOGFILE}" 2>&1
+cd "${W}"
+pkg_prep >> "${PKG_LOGFILE}" 2>&1
 
 # FIXME wrap up the patch command with something more functional
 if [ ! -z "${PATCHES}" ]; then
@@ -127,7 +129,8 @@ import "${1}"
 ## Build the source and install it into the DESTDIR
 # Ironically this is the heart of what the build-engine does, and yet it has
 # been reduced to the simplest component of the entire system.
-cd "${S}" && pkg_compile >> "${PKG_LOGFILE}" 2>&1
+cd "${S}"
+pkg_compile >> "${PKG_LOGFILE}" 2>&1
 
 ## Save Space!
 # At this point everything important should be installed into ${D}, and any
