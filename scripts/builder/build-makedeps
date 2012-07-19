@@ -134,13 +134,14 @@ EOF
 		esac
 	done
 
-	CATEGORIES="${CATEGORIES} ${CATEGORY}"
+	category="$(echo "${CATEGORY}"|tr '/-' '__')"
+	CATEGORIES="${CATEGORIES} ${category}"
 
-	eval "${CATEGORY}_SOURCES=\"\${${CATEGORY}_SOURCES} ${package_sources}\""
-	eval "${CATEGORY}_PACKAGES=\"\${${CATEGORY}_PACKAGES} ${package_archive}\""
-	eval "${CATEGORY}_INSTALL=\"\${${CATEGORY}_INSTALL} ${package_install}\""
-	eval "${CATEGORY}_CLEAN=\"\${${CATEGORY}_CLEAN} ${package_make}_clean\""
-	eval "${CATEGORY}_DISTCLEAN=\"\${${CATEGORY}_DISTCLEAN} ${package_make}_distclean\""
+	eval "${category}_SOURCES=\"\${${category}_SOURCES} ${package_sources}\""
+	eval "${category}_PACKAGES=\"\${${category}_PACKAGES} ${package_archive}\""
+	eval "${category}_INSTALL=\"\${${category}_INSTALL} ${package_install}\""
+	eval "${category}_CLEAN=\"\${${category}_CLEAN} ${package_make}_clean\""
+	eval "${category}_DISTCLEAN=\"\${${category}_DISTCLEAN} ${package_make}_distclean\""
 
 	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
 done >> "${BUILDER_MAKEFILE}"
