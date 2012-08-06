@@ -19,6 +19,11 @@ artifacts_clean:
 		echo "cleaning: artifacts" ; \
 		(cd "${BUILDER_ATFDIR}" && find . -delete) ; \
 	fi
+tmpdir_clean:
+	@if test -d "${BUILDER_TMPDIR}"; then \
+		echo "cleaning: tmpdir" ; \
+		find "${BUILDER_TMPDIR}" -delete ; \
+	fi
 EOF
 
 PACKAGES_CLEAN=
@@ -164,7 +169,7 @@ done
 
 cat<<EOF >> "${BUILDER_MAKEFILE}"
 all_clean: ${PACKAGES_CLEAN}
-all_distclean: sysroot_clean artifacts_clean
+all_distclean: sysroot_clean artifacts_clean tmpdir_clean
 EOF
 
 # vim: filetype=sh
