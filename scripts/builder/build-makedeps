@@ -10,12 +10,12 @@ all_makedeps:
 all_source:
 
 sysroot_clean:
-	@if [ -d "${SYSROOT}" ]; then \
+	@if test -d "${SYSROOT}"; then \
 		echo "cleaning: sysroot" ; \
 		(cd "${SYSROOT}" && find . -delete) ; \
 	fi
 artifacts_clean:
-	@if [ -d "${BUILDER_ATFDIR}" ]; then \
+	@if test -d "${BUILDER_ATFDIR}"; then \
 		echo "cleaning: artifacts" ; \
 		(cd "${BUILDER_ATFDIR}" && find . -delete) ; \
 	fi
@@ -28,7 +28,7 @@ EOF
 
 PACKAGES_CLEAN=
 for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
-	if [ ! -f "${BUILDER_PKGDIR}/${package}/Buildrules" ]; then
+	if ! test -f "${BUILDER_PKGDIR}/${package}/Buildrules"; then
 		error "no rulesfile for package '${package}'"
 		continue
 	fi
@@ -44,7 +44,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	package_sources="${RULESFILE}"
 	for patch in ${PATCHES}; do
 		patch="${F}/${NAME}-${VERSION}-${patch}.patch"
-		if [ ! -f "${patch}" ]; then
+		if ! test -f "${patch}"; then
 			die "patch does not exist '${patch}'"
 		fi
 		package_sources="${package_sources} ${patch}"
@@ -59,7 +59,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 
 		# Assume anything else with :// in the name is remote
 		(*://*)		pkg_src="$(build-fetch --name "${url}")"
-				if [ $? -ne 0 ]; then
+				if test "$?" -ne "0"; then
 					exit 1
 				fi
 				package_sources="${package_sources} ${BUILDER_SRCDIR}/${pkg_src}";;
@@ -74,16 +74,16 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	# it and improving performance.
 	package_deps=
 	for pkg_dep in ${BDEPENDS}; do
-		if [ ! -d "${BUILDER_PKGDIR}/${pkg_dep}" ]; then
-			if [ ! -d "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}" ]; then
+		if ! test -d "${BUILDER_PKGDIR}/${pkg_dep}"; then
+			if ! test -d "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}"; then
 				if ! build-query --exists "${pkg_dep}"; then
 					die "bad BDEPENDS in package '${package}'"
 				fi
-			elif [ ! -f "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}/Buildrules" ]; then
+			elif ! test -f "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}/Buildrules"; then
 				die "no Buildrules for '${pkg_dep}'"
 			fi
 			pkg_dep="${PROJECT}/${pkg_dep}"
-		elif [ ! -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules" ]; then
+		elif ! test -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules"; then
 			die "no Buildrules for '${pkg_dep}'"
 		fi
 		package_deps="${package_deps} ${SYSROOT}/var/db/binpkgs/${pkg_dep}"
@@ -130,7 +130,7 @@ EOF
 		# Assume anything else with :// in the name is remote
 		(*://*)
 			var="$(build-fetch --var "${url}")"
-			if [ -z "$(eval echo -n "\$${var}")" ]; then
+			if test -z "$(eval echo -n "\$${var}")"; then
 				eval "${var}='${url}'"
 				echo "${BUILDER_SRCDIR}/$(build-fetch --name "${url}"):"
 				echo "	@build-fetch \"${url}\""
