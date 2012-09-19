@@ -10,6 +10,90 @@ pkg_prep()
 
 import "${1}"
 
+build_source_clean()
+{
+	for arg in ${BUILD_SOURCE_CLEAN}; do
+		if [ -d "${arg}" ]; then
+			rm -rf "${arg}"
+		elif [ -f "${arg}" ]; then
+			rm "${arg}"
+		fi
+	done
+}
+
+build_source_uri()
+{
+	printf '%s' "${1%%\?*}"
+}
+
+build_source_args()
+{
+	set -- $(echo "${1##$(build_source_uri "${1}")\?}"|sed -e 's/&/ /')
+	printf '%s' "${*}"
+}
+
+
+build_source()
+{
+	file="$(build-fetch --name "${1}")"
+	if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
+		die "source does not exist '${file}'"
+	fi
+
+	case "${file}" in
+	(*.tar.bz2|*.tbz2|*.tar.xz|*.txz|*.tar.Z|*.tar.z|*.tz|*.tar.gz|*.tgz)
+		tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	(*.zip)
+		unzip "${BUILDER_SRCDIR}/${file}" -d "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	(*.jar)
+		cp "${BUILDER_SRCDIR}/${file}" "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	esac
+}
+
+build_source_git()
+{
+	build_source_git_uri="$(build_source_uri "${1}")"
+	build_source_git_uri="${build_source_git_uri#git://}"
+	build_source_git_uri="${build_source_git_uri%%\?*}"
+	build_source_git_tag=
+	for arg in $(build_source_args "${1}"); do
+		case "${arg}" in
+		(archive=*);;	# Ignore the archive directive
+		(*)		 build_source_git_tag="${arg}";;
+		esac
+	done
+
+	build_source_git_tmp="$(mktemp -d "${BUILDER_TMPDIR}/builder_git.XXXXXX")"
+	BUILD_SOURCE_CLEAN="${BUILD_SOURCE_CLEAN} ${build_source_git_tmp}"
+	trap build_source_clean EXIT
+
+	case "${build_source_git_uri}" in
+	(*:[0-9]*)	build_source_git_uri="git://${build_source_git_uri}";;
+	(*:*);;		# Git over ssh?
+	(*)		build_source_git_uri="git://${build_source_git_uri}";;
+	esac
+	if ! git clone "${build_source_git_uri}" "${build_source_git_tmp}"; then
+		die "failed to clone git source at '${build_source_git_uri}'"
+	fi
+	if [ "${build_source_git_tag}" != "${build_source_git_uri}" ]; then
+		if ! cd "${build_source_git_tmp}"; then
+			die "failed to change working directory to '${build_source_git_tmp}'"
+		fi
+
+		if [ ! -z "${build_source_git_tag}" ]; then
+			if ! git checkout "${build_source_git_tag}"; then
+				die "failed to checkout git branch/tag '${build_source_git_tag}'"
+			fi
+		fi
+	fi
+
+	mv "${build_source_git_tmp}" "${S}"
+
+	unset build_source_git_tmp
+	unset build_source_git_uri
+	unset build_source_git_tag
+}
+
 ## Cleanup the build build environment
 for dir in "${S}" "${D}"; do
 	if [ ! -d "${dir}" ]; then
@@ -29,18 +113,9 @@ fi
 
 # FIXME this stuff needs a lot of work
 for url in ${SOURCE_URI}; do
-	file="$(build-fetch --name "${url}")"
-	if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
-		die "source does not exist '${file}'"
-	fi
-
-	case "${file}" in
-	(*.tar.bz2|*.tbz2|*.tar.xz|*.txz|*.tar.Z|*.tar.z|*.tz|*.tar.gz|*.tgz)
-		tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-	(*.zip)
-		unzip "${BUILDER_SRCDIR}/${file}" -d "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-	(*.jar)
-		cp "${BUILDER_SRCDIR}/${file}" "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	case "${url}" in
+	(git://*) build_source_git "${url}";;
+	(*)	build_source "${url}";;
 	esac
 done
 
