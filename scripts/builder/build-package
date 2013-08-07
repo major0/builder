@@ -10,6 +10,7 @@ exit_cleanup()
 	if [ ${ret} -ne 0 ]; then
 		echo "error: packaging failed for ${CATEGORY}/${NAME}" >&2
 		echo "logfile: '${PKG_LOGFILE}'" >&2
+		exit ${ret}
 	fi
 	if [ -f "${ARCHIVE_TMP1}" ]; then
 		rm -f "${ARCHIVE_TMP1}"
@@ -17,7 +18,7 @@ exit_cleanup()
 	if [ -f "${ARCHIVE_TMP2}" ]; then
 		rm -f "${ARCHIVE_TMP2}"
 	fi
-	exit ${ret}
+	exit 0
 }
 trap exit_cleanup EXIT
 
