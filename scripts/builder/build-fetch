@@ -203,12 +203,7 @@ case "${FETCH_ACTION}" in
 (*)	die "unknown fetch action '${FETCH_ACTION}'";;
 esac
 
-FETCH_LOGDIR="$(build-query --logdir)/fetch"
-if ! test -f "${FETCH_LOGDIR}"; then
-	mkdir -p "${FETCH_LOGDIR}"
-fi
-
-exec 4>"${FETCH_LOGDIR}/$(build_fetch_name "${1}").log"
+exec 4>"${BUILDER_LOGDIR}/$(build_fetch_name "${1}").log"
 unset FETCH_LOGDIR
 echo "fetch: ${1}"
 
