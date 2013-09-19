@@ -168,7 +168,7 @@ build_fetch_http()
 	if [ ! -f "${BUILDER_SRCDIR}/${build_fetch_http_file}" ]; then
 		build_fetch_http_tmp="$(mktemp "${BUILDER_TMPDIR}/builder_${NAME}.XXXXXX")"
 		if command -v "wget" > /dev/null 2>&1; then
-			wget -O "${build_fetch_http_tmp}" "${1}" || return 1
+			wget --quiet -O "${build_fetch_http_tmp}" "${1}" || return 1
 		fi
 
 		if ! mv "${build_fetch_http_tmp}" "${BUILDER_SRCDIR}/${build_fetch_http_file}"; then
