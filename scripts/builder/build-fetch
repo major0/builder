@@ -206,16 +206,15 @@ esac
 if ! test -d "${BUILDER_TMPDIR}/fetch"; then
 	mkdir -p "${BUILDER_TMPDIR}/fetch"
 fi
-exec 4> "${BUILDER_TMPDIR}/fetch/$(build_fetch_name "${1}").log"
 echo "fetch: ${1}"
 
 # FIXME this stuff needs a lot of work
 case "${1}" in
-(git://*)	build_fetch_git "${1}" >&4;;
-(http://*)	build_fetch_http "${1}" >&4;;
-(ftp://*)	build_fetch_http "${1}" >&4;;
+(git://*)	build_fetch_git "${1}";;
+(http://*)	build_fetch_http "${1}";;
+(ftp://*)	build_fetch_http "${1}";;
 # Everything else is death
 (*)		die "do not know how to handle '${1}'"
-esac
+esac > "${BUILDER_TMPDIR}/fetch/$(build_fetch_name "${1}").log"
 
 # vim: filetype=sh
