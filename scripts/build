@@ -214,18 +214,13 @@ BUILDER_SRCDIR="${TOPDIR}/sources"
 BUILDER_ATFDIR="${TOPDIR}/artifacts"
 BUILDER_LIBDIR="${TOPDIR}/scripts/builder"
 
-BUILDER_TMPDIR=
-for dir in "${TMP}" "${TMPDIR}" "/tmp"; do
-	if test -d "${dir}"; then
-		BUILDER_TMPDIR="${dir}/.builder_${USER}"
-		if ! test -d "${BUILDER_TMPDIR}"; then
-			mkdir -p "${BUILDER_TMPDIR}"
-		fi
-	fi
-done
-
 export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR
 export BUILDER_ATFDIR BUILDER_LIBDIR BUILDER_TOPDIR
+
+BUILDER_TMPDIR="${TOPDIR}/tmp"
+if ! test -d "${BUILDER_TMPDIR}"; then
+	mkdir -p "${BUILDER_TMPDIR}"
+fi
 export BUILDER_TMPDIR
 
 # We save the pre-config PATH as BUILDER_PATH to be used by downstream tools.
