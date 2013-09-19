@@ -203,8 +203,14 @@ case "${FETCH_ACTION}" in
 (*)	die "unknown fetch action '${FETCH_ACTION}'";;
 esac
 
-exec 4>"${L}/fetch.log"
-echo "fetch: ${1}" >&4
+FETCH_LOGDIR="$(builder-query --logdir)/fetch"
+if ! test -f "${FETCH_LOGDIR}"; then
+	mkdir -p "${FETCH_LOGDIR}"
+fi
+
+exec 4>"${FETCH_LOGDIR}/$(build_fetch_name "${1}").log"
+unset FETCH_LOGDIR
+echo "fetch: ${1}"
 
 # FIXME this stuff needs a lot of work
 case "${1}" in
