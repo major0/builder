@@ -139,7 +139,7 @@ build_fetch_git()
 	fi
 
 	cd "${build_fetch_git_tmp}"
-	tar cavf "${build_fetch_git_var}" "${build_fetch_git_dir}"
+	tar caf "${build_fetch_git_var}" "${build_fetch_git_dir}"
 
 	if [ ! -d "${BUILDER_SRCDIR}" ]; then
 		mkdir -p "${BUILDER_SRCDIR}"
