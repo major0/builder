@@ -104,14 +104,14 @@ build_fetch_git()
 			die "failed to change working directory to '${build_fetch_git_dir}'"
 		fi
 
-		if ! git init -q; then
+		if ! git init -q >&4; then
 			die "failed to initialize git directory"
 		fi
 
-		git remote add origin "${build_fetch_git_uri}"
+		git remote add origin "${build_fetch_git_uri}" >&4
 
 		if [ ! -z "${build_fetch_git_tag}" ]; then
-			if ! git fetch --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_tag}"; then
+			if ! git fetch --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_tag}" >&4; then
 				die "failed to fetch git branch/tag '${build_fetch_git_tag}'"
 			fi
 
@@ -128,12 +128,12 @@ build_fetch_git()
 				;;
 			esac
 
-			if ! git checkout "${build_fetch_git_tag}"; then
+			if ! git checkout "${build_fetch_git_tag}" >&4; then
 				die "failed to checkout git branch/tag '${build_fetch_git_tag}'"
 			fi
 		fi
 	else
-		if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
+		if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}" >&4; then
 			die "failed to clone git source at '${build_fetch_git_uri}'"
 		fi
 	fi
@@ -168,7 +168,7 @@ build_fetch_http()
 	if [ ! -f "${BUILDER_SRCDIR}/${build_fetch_http_file}" ]; then
 		build_fetch_http_tmp="$(mktemp "${BUILDER_TMPDIR}/builder_${NAME}.XXXXXX")"
 		if command -v "wget" > /dev/null 2>&1; then
-			wget -O "${build_fetch_http_tmp}" "${1}" || return 1
+			wget -O "${build_fetch_http_tmp}" "${1}" >&4 || return 1
 		fi
 
 		if ! mv "${build_fetch_http_tmp}" "${BUILDER_SRCDIR}/${build_fetch_http_file}"; then
@@ -203,7 +203,8 @@ case "${FETCH_ACTION}" in
 (*)	die "unknown fetch action '${FETCH_ACTION}'";;
 esac
 
-echo "fetch: ${1}"
+exec 4>"${L}/fetch.log"
+echo "fetch: ${1}" >&4
 
 # FIXME this stuff needs a lot of work
 case "${1}" in
