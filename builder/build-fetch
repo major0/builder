@@ -98,40 +98,31 @@ build_fetch_git()
 	(*)		build_fetch_git_uri="git://${build_fetch_git_uri}";;
 	esac
 
-	if [ "${build_fetch_git_tag}" != "${build_fetch_git_uri}" ]; then
-		mkdir "${build_fetch_git_dir}"
-		if ! cd "${build_fetch_git_dir}"; then
-			die "failed to change working directory to '${build_fetch_git_dir}'"
-		fi
-
-		if ! git init -q; then
-			die "failed to initialize git directory"
-		fi
-
-		git remote add origin "${build_fetch_git_uri}"
-
-		if [ ! -z "${build_fetch_git_tag}" ]; then
-			if ! git fetch --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_tag}"; then
-				die "failed to fetch git branch/tag '${build_fetch_git_tag}'"
+	if [ ! -z "${build_fetch_git_tag}" ]; then
+		case "${build_fetch_git_tag}" in
+		(tags/*)
+			if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
+				die "failed to clone git source at '${build_fetch_git_uri}'"
 			fi
 
-			case "${build_fetch_git_tag}" in
-			(tags/*)
-				mkdir -p .git/refs/tags
-				if test -f ".git/refs/heads/master"; then
-					cp .git/refs/heads/master ".git/refs/${build_fetch_git_tag}"
-				elif test -f ".git/shallow"; then
-					cp .git/shallow ".git/refs/${build_fetch_git_tag}"
-				else
-					die "failed to install reference '${build_fetch_git_tag}'"
-				fi
-				;;
-			esac
+			if ! cd "${build_fetch_git_dir}"; then
+				die "failed to change working directory to '${build_fetch_git_dir}'"
+			fi
+
+			if ! git fetch --tags --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_tag}"; then
+				die "failed to fetch git branch/tag '${build_fetch_git_tag}'"
+			fi
 
 			if ! git checkout "${build_fetch_git_tag}"; then
 				die "failed to checkout git branch/tag '${build_fetch_git_tag}'"
 			fi
-		fi
+			;;
+		(*)
+			if ! git clone --depth 1 --branch "${build_fetch_git_tag}" "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
+				die "failed to clone git source at '${build_fetch_git_uri}'"
+			fi
+			;;
+		esac
 	else
 		if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
 			die "failed to clone git source at '${build_fetch_git_uri}'"
