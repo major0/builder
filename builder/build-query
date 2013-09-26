@@ -108,14 +108,13 @@ if [ "${QUERY_ACTION}" = "toolchain" ]; then
 
 	if [ "$#" -gt "0" ] && [ "${1}" != "${CHOST}" ]; then
 		CROSS_COMPILE="${1}-"
-		CC="${CROSS_COMPILE}gcc"
-		CXX="${CROSS_COMPILE}g++"
 		shift
 	else
 		CROSS_COMPILE="${CHOST}-"
-		CC="${CROSS_COMPILE}gcc --sysroot=${SYSROOT}"
-		CXX="${CROSS_COMPILE}g++ --sysroot=${SYSROOT}"
 	fi
+
+	CC="${CROSS_COMPILE}gcc"
+	CXX="${CROSS_COMPILE}g++"
 
 	cat<<-EOF
 	CC="${CC}"
