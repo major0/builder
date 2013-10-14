@@ -204,6 +204,7 @@ echo "fetch: ${1}"
 case "${1}" in
 (git://*)	build_fetch_git "${1}" > "${FETCH_LOG}";;
 (http://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
+(https://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
 (ftp://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
 # Everything else is death
 (*)		die "do not know how to handle '${1}'"
