@@ -212,8 +212,8 @@ export S
 
 case "${QUERY_ACTION}" in
 (srcdir)	echo "${S}";;
-(bdeps)		echo "${BDEPENDS}";;
-(rdeps)		echo "${RDEPENDS}";;
+(bdeps)		echo "$(echo ${BDEPENDS})";;
+(rdeps)		echo "$(echo ${RDEPENDS})";;
 (descr)		echo "${DESCRIPTION}";;
 (version)	echo "${VERSION}";;
 (patches)	echo "${PATCHES}";;
