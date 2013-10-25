@@ -7,27 +7,17 @@ set -e
 usage()
 {
 cat<<EOF
-usage: ${0##*/} [options] <command> [command-opts] [all|<package> ...]
+usage: ${0##*/} [options] <command> [command-opts] [all|<category>/<package|all> ...]
 
 Options
 -------
- -t, --target	Specify a build-target.  This is a generic concept which tells
-		builder the name of the config rule to pick up from the
-		.builder/ path at the top of the build-tree.  The global config
-		.builder/default is always evaluated before evaluating any
-		target-specific configs.  This allows for nightly and release
-		targets, as well as architecture specific variations.
-
  -v, --version	Display the builder version.
-
  -d, --debug	Enable debug logging.
-
  -h, --help	Display the builder help and exit (may appear anywhere on the
 		command line).
 
 Commands
 --------
-
   query		The query is used internally by builder, while allowing
 		one to query various packages from the builder repository.
 
@@ -42,22 +32,28 @@ Commands
 		  -u, --source-uri
 		  -s, --summary
 
-  sync		Fetch , unpack, and patch any sources from the source uri.  If
-		a local source has been checked out into the package directory
-		then the fetch/unpack portion simply copies the local checked
-		out source to the workdir for compilation.
+  source	Create a copy/checkout of the package sources inside of
+		packages/<category>/<name>/source.  The source/ directory
+		within a package takes precendences over the SOURCE_URI,
+		allowing in-place development of various packages.  This is
+		particularly useful if the SOURCE_URI is an SCM.
 
-  compile	Compile the source code.  During this stage the CC, CHOST, LD,
-		and a variety of other target-specific variables will be set
-		and usable within the build rules script. The predefined
-		behavior for this action is to cd into the workdir, produce a
-		configure script from the configure.in if necessary, run the
-		configure with predefined CONFIG_OPTS, and then perform
-		a make with MAKE_OPTS.
+  fetch		Fetch the sources for a package from the SOURCE_URI and store
+		them into the sources/ top-level directory.  This is done
+		automatically for all commands which depend on it.
 
-  install	Install a package into the build-tree's sysroot (as opposed to
-		a packages sysroot or into the build-host's root).  This is
-		done automatically for any build-dependent packages.
+  package	Prep, compile and construct a binary "artifact" file for a
+		given package.  This command is performed automatically for all
+		commands which depend on it.
+
+  install	Install a binary artifact into the sysroot. This action is
+		performed automatically for any packages which the current
+		target depends on.  If necessary produce binary artifacts for
+		all package deps.
+
+  clean		Clean specified package from sysroot and artifacts.
+
+  distclean	Clean up specified package from sysroot, artifacts, and sources.
 
 EOF
 }
