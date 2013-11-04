@@ -35,7 +35,8 @@ pkg_compile()
 	LD="${CHOST}-ld"
 	STRIP="${CHOST}-strip"
 	RANLIB="${CHOST}-ranlib"
-	export CC CXX AS LD STRIP RANLIB
+	LIBTOOL="${CHOST}-libtool"
+	export CC CXX AS LD STRIP RANLIB LIBTOOL
 
 	# FIXME these defaults need moved elsewhere
 	if [ -f "configure" ]; then
