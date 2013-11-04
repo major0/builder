@@ -198,16 +198,26 @@ if ! test -d "${BUILDER_TMPDIR}/fetch"; then
 	mkdir -p "${BUILDER_TMPDIR}/fetch"
 fi
 FETCH_LOG="${BUILDER_TMPDIR}/fetch/$(build_fetch_name "${1}").log"
-echo "fetch: ${1}"
 
-# FIXME this stuff needs a lot of work
-case "${1}" in
-(git://*)	build_fetch_git "${1}" > "${FETCH_LOG}";;
-(http://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
-(https://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
-(ftp://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
-# Everything else is death
-(*)		die "do not know how to handle '${1}'"
-esac
+build_fetch()
+{
+	echo "fetch: ${1}"
+
+	# FIXME this stuff needs a lot of work
+	case "${1}" in
+	(git://*)	build_fetch_git "${1}" > "${FETCH_LOG}";;
+	(http://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
+	(https://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
+	(ftp://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
+	# Everything else is death
+	(*)		die "do not know how to handle '${1}'"
+	esac
+}
+
+for mirror in ${MIRRORS}; do
+	build_fetch "${mirror}/$(build_fetch_name "${1}")" && exit
+done
+
+build_fetch "${1}"
 
 # vim: filetype=sh
