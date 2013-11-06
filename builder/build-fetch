@@ -86,8 +86,8 @@ build_fetch_git()
 	# in order to perform a single build, unfortunately git does not give a
 	# clear-cut approach to checkout out a specific tag or the head of a
 	# specific branch, instead we have to jump through some hoops.
-	build_fetch_git_tmp="$(mktemp -d "${BUILDER_TMPDIR}/builder_git.XXXXXX")"
 	build_fetch_git_dir="${build_fetch_git_var%%.t*}"
+	build_fetch_git_tmp="$(mktemp -d "${BUILDER_TMPDIR}/${build_fetch_git_dir}.XXXXXX")"
 	cd "${build_fetch_git_tmp}"
 	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_git_tmp}"
 	#trap build_fetch_clean EXIT
@@ -198,7 +198,7 @@ build_fetch_http()
 		mkdir -p "${BUILDER_SRCDIR}"
 	fi
 	if [ ! -f "${BUILDER_SRCDIR}/${build_fetch_http_file}" ]; then
-		build_fetch_http_tmp="$(mktemp "${BUILDER_TMPDIR}/builder_${NAME}.XXXXXX")"
+		build_fetch_http_tmp="$(mktemp "${BUILDER_TMPDIR}/${build_fetch_http_file}.XXXXXX")"
 		if command -v "wget" > /dev/null 2>&1; then
 			wget --quiet -O "${build_fetch_http_tmp}" "${1}" || return 1
 		fi
