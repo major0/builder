@@ -90,7 +90,6 @@ build_fetch_git()
 	build_fetch_git_tmp="$(mktemp -d "${BUILDER_TMPDIR}/${build_fetch_git_dir}.XXXXXX")"
 	cd "${build_fetch_git_tmp}"
 	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_git_tmp}"
-	#trap build_fetch_clean EXIT
 
 	case "${build_fetch_git_uri}" in
 	(*:[0-9]*)	build_fetch_git_uri="git://${build_fetch_git_uri}";;
@@ -256,6 +255,7 @@ build_fetch()
 	esac
 }
 
+trap build_fetch_clean 0
 for mirror in ${MIRRORS}; do
 	build_fetch "${mirror}/$(build_fetch_name "${1}")" && exit
 done
