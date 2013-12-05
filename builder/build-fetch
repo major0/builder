@@ -238,6 +238,8 @@ if ! test -d "${BUILDER_TMPDIR}/fetch"; then
 	mkdir -p "${BUILDER_TMPDIR}/fetch"
 fi
 FETCH_LOG="${BUILDER_TMPDIR}/fetch/$(build_fetch_name "${1}").log"
+rm -f "${FETCH_LOG}"
+touch "${FETCH_LOG}"
 
 build_fetch()
 {
@@ -245,11 +247,11 @@ build_fetch()
 
 	# FIXME this stuff needs a lot of work
 	case "${1}" in
-	(git://*)	build_fetch_git "${1}" > "${FETCH_LOG}";;
-	(svn://*)	build_fetch_svn "${1}" > "${FETCH_LOG}";;
-	(http://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
-	(https://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
-	(ftp://*)	build_fetch_http "${1}" > "${FETCH_LOG}";;
+	(git://*)	build_fetch_git "${1}" >> "${FETCH_LOG}";;
+	(svn://*)	build_fetch_svn "${1}" >> "${FETCH_LOG}";;
+	(http://*)	build_fetch_http "${1}" >> "${FETCH_LOG}";;
+	(https://*)	build_fetch_http "${1}" >> "${FETCH_LOG}";;
+	(ftp://*)	build_fetch_http "${1}" >> "${FETCH_LOG}";;
 	# Everything else is death
 	(*)		die "do not know how to handle '${1}'"
 	esac
@@ -258,6 +260,7 @@ build_fetch()
 trap build_fetch_clean 0
 for mirror in ${MIRRORS}; do
 	build_fetch "${mirror}/$(build_fetch_name "${1}")" && exit
+	echo "unavailable: ${mirror}/$(build_fetch_name "${1}")"
 done
 
 build_fetch "${1}"
