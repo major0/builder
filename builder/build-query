@@ -41,7 +41,7 @@ while [ "$#" -gt "0" ]; do
 	(-B|-build-deps|--build-deps)
 		QUERY_ACTION="bdeps";;
 	(-c|-category|--category)
-		QUERY_ACTIONS="category";;
+		QUERY_ACTION="category";;
 	(-d|-description|--description)
 		QUERY_ACTION="descr";;
 	(-D|-destdir|--destdir)
