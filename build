@@ -358,5 +358,13 @@ done
 set -- ${packages}
 unset packages
 
-# exec out to make with the appropriate Makefile
-make ${MAKE_OPTS} -r -f "${BUILDER_MAKEFILE}" "${@}" 2>&1 | tee "${BUILDER_TMPDIR}/builder.log"
+# The 'tee' command will discard the exit status from 'make', so we capture it
+# via a wrapper function so we can exit properly.
+build_make()
+{
+	BUILD_EXIT='0'
+	make -r -f "${BUILDER_MAKEFILE}" "${@}"
+	BUILD_EXIT="$?"
+}
+build_make "${@}" 2>&1 | tee "${BUILDER_TMPDIR}/builder.log"
+exit "${BUILD_EXIT}"
