@@ -367,4 +367,4 @@ build_make()
 	BUILD_EXIT="$?"
 }
 build_make "${@}" 2>&1 | tee "${BUILDER_TMPDIR}/builder.log"
-exit "${BUILD_EXIT}"
+exit ${BUILD_EXIT}
