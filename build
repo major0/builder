@@ -79,7 +79,8 @@ mkenv()
 # deal with temporary junk when we exit
 cleanup()
 {
-	[ -f "${BUILDER_MAKEFILE}" ] && rm -f "${BUILDER_MAKEFILE}"
+	test -f "${BUILDER_MAKEFILE}" && rm -f "${BUILDER_MAKEFILE}"
+	test -p "${BUILDER_PIPE}" && rm -f "${BUILDER_PIPE}"
 }
 
 ## error <message>
@@ -358,13 +359,12 @@ done
 set -- ${packages}
 unset packages
 
-# The 'tee' command will discard the exit status from 'make', so we capture it
-# via a wrapper function so we can exit properly.
-build_make()
-{
-	BUILD_EXIT='0'
-	make -r -f "${BUILDER_MAKEFILE}" "${@}"
-	BUILD_EXIT="$?"
-}
-build_make "${@}" 2>&1 | tee "${BUILDER_TMPDIR}/builder.log"
-exit ${BUILD_EXIT}
+# The 'tee' command will discard the exit status from 'make', so we have to
+# jump through a few hoops to capture the exit status in a portable fashion.
+BUILDER_PIPE="`mktemp "${BUILDER_TMPDIR}/builder_pipe.XXXXXXXX"`"
+test -f "${BUILDER_PIPE}" || die 'failed to generate log-pipe placeholder'
+rm -f "${BUILDER_PIPE}" && mkfifo "${BUILDER_PIPE}" || die 'failed to create log-pipe'
+tee "${BUILDER_TMPDIR}/builder.log" < "${BUILDER_PIPE}" &
+BUILDER_LOGGER="$!"
+make -r -f "${BUILDER_MAKEFILE}" "${@}" > "${BUILDER_PIPE}" 2>&1
+exit $?
