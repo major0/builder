@@ -139,6 +139,9 @@ a single descreet location, while allowing a project to change the tree layout.
 	    <target>		Alternate config rules.  The default config is
 				always read before processing alternate rules.
 
+	scripts/		The location of the build command and the
+				builder subdirectory.
+
 	sources/		Source code repository holding source archives
 				for various packages.  Caches of SCM aquired
 				sources are also stored within this path. The
