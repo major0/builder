@@ -152,9 +152,11 @@ build_fetch_svn()
 {
 	build_fetch_svn_uri="$(build_fetch_uri "${1}")"
 	build_fetch_svn_uri="${build_fetch_svn_uri%%\?*}"
+	build_fetch_svn_proto=svn
 	for arg in $(build_fetch_args "${1}"); do
 		case "${arg}" in
 		(archive=*) build_fetch_svn_var="${arg##*=}";;
+		(proto=*) build_fetch_svn_proto="${arg##*=}";;
 		esac
 	done
 	if test -z "${build_fetch_svn_var}"; then
@@ -166,7 +168,7 @@ build_fetch_svn()
 	cd "${build_fetch_svn_tmp}"
 	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_svn_tmp}"
 
-	if ! svn checkout "${build_fetch_svn_uri}" "${build_fetch_svn_dir}"; then
+	if ! svn checkout "${build_fetch_svn_proto}${build_fetch_svn_uri#svn}" "${build_fetch_svn_dir}"; then
 		die "failed to checkout svn source at '${build_fetch_svn_uri}'"
 	fi
 
@@ -185,6 +187,7 @@ build_fetch_svn()
 
 	unset build_fetch_svn_tmp
 	unset build_fetch_svn_var
+	unset build_fetch_svn_proto
 	unset build_fetch_svn_dir
 	unset build_fetch_svn_uri
 }
