@@ -89,7 +89,15 @@ else
 		echo "prepping ${1} from source: '${BUILDER_SRCDIR}/${file}"
 
 		case "${file}" in
-		(*.tar.bz2|*.tbz2|*.tar.xz|*.txz|*.tar.Z|*.tar.z|*.tz|*.tar.gz|*.tgz)
+		(*.tar.Z|*.tar.z|*.tz)
+			tar xZf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+		(*.tar.gz|*.tgz)
+			tar xzf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+		(*.tar.bz2|*.tbz2)
+			tar xjf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+		(*.tar.xz|*.txz)
+			tar xJf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+		(*.tar.*)
 			tar xaf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
 		(*.zip)
 			unzip "${BUILDER_SRCDIR}/${file}" -d "${W}" >> "${PKG_LOGFILE}" 2>&1;;

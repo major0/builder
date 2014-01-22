@@ -41,7 +41,15 @@ build_source()
 	fi
 
 	case "${file}" in
-	(*.tar.bz2|*.tbz2|*.tar.xz|*.txz|*.tar.Z|*.tar.z|*.tz|*.tar.gz|*.tgz)
+	(*.tar.Z|*.tar.z|*.tz)
+		tar xZvf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	(*.tar.gz|*.tgz)
+		tar xzvf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	(*.tar.bz2|*.tbz2)
+		tar xjvf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	(*.tar.xz|*.txz)
+		tar xJvf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+	(*.tar.*)
 		tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
 	(*.zip)
 		unzip "${BUILDER_SRCDIR}/${file}" -d "${W}" >> "${PKG_LOGFILE}" 2>&1;;

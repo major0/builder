@@ -129,7 +129,12 @@ build_fetch_git()
 	fi
 
 	cd "${build_fetch_git_tmp}"
-	tar caf "${build_fetch_git_var}" "${build_fetch_git_dir}"
+	case "${build_fetch_git_var}" in
+	(*tar.Z|*tz)	tar cZf "${build_fetch_git_var}" "${build_fetch_git_dir}";;
+	(*tgz|*tar.gz)	tar czf "${build_fetch_git_var}" "${build_fetch_git_dir}";;
+	(*tar.bz2)	tar cjf "${build_fetch_git_var}" "${build_fetch_git_dir}";;
+	(*)		tar caf "${build_fetch_git_var}" "${build_fetch_git_dir}";;
+	esac
 
 	if [ ! -d "${BUILDER_SRCDIR}" ]; then
 		mkdir -p "${BUILDER_SRCDIR}"
