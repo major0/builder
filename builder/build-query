@@ -34,12 +34,50 @@ parse_category()
 	printf '%s' "${1%/*}"
 }
 
+RECURSE_RDEPENDS='false'
+recurse_bdeps()
+{
+	if ${RECURSE_RDEPENDS}; then
+		set -- "${@}" $(build query -R "${1}")
+	else
+		set -- "${@}" $(build query -B "${1}")
+	fi
+
+	eval query_recursive_var="$(echo "${1}"|sed -e 's,[_-/],_,g')"
+	eval query_recursive_val="\$${query_recursive_var}"
+	if ! test -z "${query_recursive_val}"; then
+		unset query_recursive_val
+		unset query_recursive_var
+		return
+	fi
+	unset query_recursive_val
+
+	echo "${1}"
+	eval "${query_recursive_var}='${*}'"
+	unset query_recursive_var
+
+	shift
+	for query_recursive_pkg; do
+		recurse_bdeps "${query_recursive_pkg}"
+	done
+	unset
+	unset query_recursive_pkg
+}
+recurse_rdeps()
+{
+	RECURSE_RDEPENDS='true'
+	recurse_bdeps "${@}"
+}
+
+
 QUERY_ACTION="summary"
 
 while [ "$#" -gt "0" ]; do
 	case "${1}" in
-	(-B|-build-deps|--build-deps)
-		QUERY_ACTION="bdeps";;
+	(-B|-bdepends|--bdepends)
+		QUERY_ACTION="bdepends";;
+	(-bdeps-all|--bdeps-all)
+		QUERY_ACTION="bdeps_all";;
 	(-c|-category|--category)
 		QUERY_ACTION="category";;
 	(-d|-description|--description)
@@ -66,8 +104,10 @@ while [ "$#" -gt "0" ]; do
 		QUERY_ACTION="pkgdir";;
 	(-r|-rulefile|--rulesfile)
 		QUERY_ACTION="rulesfile";;
-	(-R|-depends|--depends)
-		QUERY_ACTION="rdeps";;
+	(-R|-rdepends|--rdepends)
+		QUERY_ACTION="rdepends";;
+	(-rdeps-all|--rdeps-all)
+		QUERY_ACTION="rdeps_all";;
 	(-s|-srcdir|--srcdir)
 		QUERY_ACTION="srcdir";;
 	(-S|-summary|--summary)
@@ -212,8 +252,10 @@ export S
 
 case "${QUERY_ACTION}" in
 (srcdir)	echo "${S}";;
-(bdeps)		echo "$(echo ${BDEPENDS})";;
-(rdeps)		echo "$(echo ${RDEPENDS})";;
+(bdepends)	echo "$(echo ${BDEPENDS})";;
+(bdeps_all)	recurse_bdeps ${BDEPENDS};;
+(rdepends)	echo "$(echo ${RDEPENDS})";;
+(rdeps_all)	recurse_rdeps ${RDEPENDS};;
 (descr)		echo "${DESCRIPTION}";;
 (version)	echo "${VERSION}";;
 (patches)	echo "${PATCHES}";;
