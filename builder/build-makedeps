@@ -72,7 +72,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	# build-query, particularly when dealing with a large number of
 	# packages.  So we do some FS level checks first in hopes of avoiding
 	# it and improving performance.
-	package_deps=
+	package_bdeps=
 	for pkg_dep in ${BDEPENDS}; do
 		if ! test -d "${BUILDER_PKGDIR}/${pkg_dep}"; then
 			if ! test -d "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}"; then
@@ -86,8 +86,26 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 		elif ! test -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules"; then
 			die "no Buildrules for '${pkg_dep}'"
 		fi
-		package_deps="${package_deps} ${SYSROOT}/var/db/binpkgs/${pkg_dep}"
+		package_bdeps="${package_bdeps} ${SYSROOT}/var/db/binpkgs/${pkg_dep}"
 	done
+
+	package_rdeps=
+	for pkg_dep in ${RDEPENDS}; do
+		if ! test -d "${BUILDER_PKGDIR}/${pkg_dep}"; then
+			if ! test -d "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}"; then
+				if ! build-query --exists "${pkg_dep}"; then
+					die "bad RDEPENDS in package '${package}'"
+				fi
+			elif ! test -f "${BUILDER_PKGDIR}/${PROJECT}/${pkg_dep}/Buildrules"; then
+				die "no Buildrules for '${pkg_dep}'"
+			fi
+			pkg_dep="${PROJECT}/${pkg_dep}"
+		elif ! test -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules"; then
+			die "no Buildrules for '${pkg_dep}'"
+		fi
+		package_rdeps="${package_rdeps} ${SYSROOT}/var/db/binpkgs/${pkg_dep}"
+	done
+	unset pkg_dep
 
 cat <<EOF
 
@@ -102,10 +120,11 @@ ${package_make}_clean:
 	@build-clean "${CATEGORY}/${NAME}"
 ${package_make}_distclean:
 	@build-distclean "${CATEGORY}/${NAME}"
-${package_archive}: ${package_sources} ${package_deps}
+${package_make}_package: ${package_archive}
+${package_archive}: ${package_sources} ${package_bdeps}
 	@build-package "${CATEGORY}/${NAME}"
 ${package_make}_install: ${package_install}
-${package_install}: ${package_archive}
+${package_install}: ${package_archive} ${package_rdeps}
 	@build-install "${CATEGORY}/${NAME}"
 EOF
 
