@@ -1,0 +1,90 @@
+#!/usr/bin/env build
+
+import "${1}"
+
+if test -z "${LICENSE}"; then
+	die "no license set in '${1}'"
+fi
+
+echo "exporting ${1}"
+
+for dir in "${S}" "${D}"; do
+	if ! test -d "${dir}"; then
+		continue
+	fi
+	mv "${dir}" "${dir}.old"
+	find "${dir}.old" -delete &
+done
+unset dir
+
+mkenv 'export'
+EXPORT_LOGFILE="${L}/export.log"
+
+mkdir -p "${T}/${NAME}-${VERSION}.builder"
+cp "${RULESFILE}" "${T}/${NAME}-${VERSION}.builder/"
+
+if ! test -z "${PATCHES}"; then
+	for patch in ${PATCHES}; do
+		cp "${F}/${NAME}-${VERSION}-${patch}.patch" "${T}/${NAME}-${VERSION}.builder/"
+	done
+fi
+
+cd "${T}"
+
+for url in ${SOURCE_URI}; do
+	file="$(build-fetch --name "${url}")"
+	test -f "${BUILDER_SRCDIR}/${file}" || die "source does not exist '${file}'"
+	cp "${BUILDER_SRCDIR}/${file}" "${NAME}-${VERSION}.builder/"
+done
+
+for dir in SOURCES SPECS RPMS BUILD; do
+	mkdir -p "${S}/${dir}" &
+done
+wait
+
+if ! tar czf "${S}/SOURCES/${NAME}-${VERSION}.builder.tar.gz" "${NAME}-${VERSION}.builder"; then
+	die "Failed to create base rpm tarball."
+fi
+
+cat <<EOF > "${S}/SPECS/${NAME}-${VERSION}.spec"
+Summary: ${DESCRIPTION}
+Name: ${NAME}
+Version: ${VERSION}
+Release: ${RELEASE}
+License: ${LICENSE}
+Group: ${CATEGORY}
+Source: ${NAME}-${VERSION}.builder.tar.gz
+Buildroot: ${SYSROOT}
+%description
+${DESCRIPTION}
+
+%prep
+%setup -c
+
+%build
+
+%install
+
+%clean
+
+%files
+EOF
+tr '\000' '\n' < "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" | sed -e 's,^,/,' >> "${S}/SPECS/${NAME}-${VERSION}.spec"
+
+#mkdir -p "${D}"
+#cd "${D}"
+#tar xaf "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+
+rpmbuild --quiet --target "${CHOST}"	\
+	--define "_topdir ${S}"		\
+	--define "buildroot ${SYSROOT}"	\
+	--define '_unpackaged_files_terminate_build 0'	\
+	--define '_missing_doc_files_terminate_build 0'	\
+	--define "arch ${CHOST%%-*}"	\
+	-bb "${S}/SPECS/${NAME}-${VERSION}.spec" > "${L}/export.log" 2>&1 || die "Failed to integrate rpm spec file"
+
+mkdir -p "${BUILDER_TOPDIR}/exports"
+# FIXME figure out the arch properly
+mv "${S}/RPMS/${CHOST%%-*}/${NAME}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm" "${BUILDER_TOPDIR}/exports/" || die "Failed to move rpm"
+
+# vim: filetype=sh

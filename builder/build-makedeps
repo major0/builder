@@ -6,6 +6,7 @@ all: ${PROJECT}_archive
 all_fetch: ${PROJECT}_all_fetch
 all_archive: ${PROJECT}_all_archive
 all_install: ${PROJECT}_all_install
+all_export: ${PROJECT}_all_export
 all_makedeps:
 all_source:
 
@@ -24,6 +25,11 @@ tmpdir_clean:
 		echo "cleaning: tmpdir" ; \
 		find "${BUILDER_TMPDIR}" -delete ; \
 	fi
+exports_clean:
+	@if test -d "${BUILDER_TOPDIR}/exports"; then \
+		echo "cleaning: exports" ; \
+		find "${BUILDER_TOPDIR}/exports" -delete ; \
+	fi
 EOF
 
 PACKAGES_CLEAN=
@@ -39,6 +45,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	package_make="$(echo "${package}"|tr '/-' '__')"
 	package_archive="${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}"
 	package_install="${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
+	package_export="${BUILDER_TOPDIR}/exports/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm"
 	package_logdir="${L}"
 
 	package_sources="${RULESFILE}"
@@ -126,6 +133,9 @@ ${package_archive}: ${package_sources} ${package_bdeps}
 ${package_make}_install: ${package_install}
 ${package_install}: ${package_archive} ${package_rdeps}
 	@build-install "${CATEGORY}/${NAME}"
+${package_make}_export: ${package_export}
+${package_export}: ${package_install}
+	@build-export "${CATEGORY}/${NAME}"
 EOF
 
 	##
@@ -164,6 +174,7 @@ EOF
 	eval "${category}_SOURCES=\"\${${category}_SOURCES} ${package_sources}\""
 	eval "${category}_PACKAGES=\"\${${category}_PACKAGES} ${package_archive}\""
 	eval "${category}_INSTALL=\"\${${category}_INSTALL} ${package_install}\""
+	eval "${category}_EXPORT=\"\${${category}_EXPORT} ${package_export}\""
 	eval "${category}_CLEAN=\"\${${category}_CLEAN} ${package_make}_clean\""
 	eval "${category}_DISTCLEAN=\"\${${category}_DISTCLEAN} ${package_make}_distclean\""
 
@@ -180,6 +191,7 @@ ${CATEGORY}_all: ${CATEGORY}_archive
 ${CATEGORY}_all_fetch: $(eval echo "\${${CATEGORY}_SOURCES}")
 ${CATEGORY}_all_archive: $(eval echo "\${${CATEGORY}_PACKAGES}")
 ${CATEGORY}_all_install: $(eval echo "\${${CATEGORY}_INSTALL}")
+${CATEGORY}_all_export: $(eval echo "\${${CATEGORY}_EXPORT}")
 ${CATEGORY}_all_clean: $(eval echo "\${${CATEGORY}_CLEAN}")
 ${CATEGORY}_all_distclean: $(eval echo "\${${CATEGORY}_DISTCLEAN}")
 
@@ -187,8 +199,8 @@ EOF
 done
 
 cat<<EOF >> "${BUILDER_MAKEFILE}"
-all_clean: ${PACKAGES_CLEAN}
-all_distclean: sysroot_clean artifacts_clean tmpdir_clean
+all_clean: ${PACKAGES_CLEAN} exports_clean
+all_distclean: sysroot_clean artifacts_clean tmpdir_clean exports_clean
 EOF
 
 # vim: filetype=sh

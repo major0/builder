@@ -55,6 +55,8 @@ Commands
 
   distclean	Clean up specified package from sysroot, artifacts, and sources.
 
+  export	Export the binary package to an rpm.
+
 EOF
 }
 
