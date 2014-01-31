@@ -168,6 +168,18 @@ if [ ! -e "${binpkg_list}" ]; then
 	die "failed to create package inventory"
 fi
 cd "${D}"
+for dir in man usr/man usr/share/man; do
+	test -d "${dir}" || continue
+	for file in `find "${dir}" -regex '.*[1-9]$'`; do
+		if test -f "${file}"; then
+			gzip -c -9 "${file}" > "${file}.gz" && rm "${file}"
+		elif test -h "${file}"; then
+			mv "${file}" "${file}.gz"
+		fi
+	done
+	wait
+done
+wait
 find * -depth \( ! -type d \) -print0 > "${binpkg_list}"
 mv "${binpkg_list}" "${D}/var/db/binpkgs/${CATEGORY}/${NAME}"
 
