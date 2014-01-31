@@ -175,8 +175,8 @@ echo "archiving: ${1}"
 mkenv "archive"
 PKG_LOGFILE="${L}/archive.log"
 
-ARCHIVE_TMP1="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}.XXXXXXXX")"
-ARCHIVE_TMP2="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}.XXXXXXXX")"
+ARCHIVE_TMP1="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}-${RELEASE}.XXXXXXXX")"
+ARCHIVE_TMP2="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}-${RELEASE}.XXXXXXXX")"
 
 [ -f "${ARCHIVE_TMP1}" ] || die "failed to create temporary archive for package '${NAME}'"
 [ -f "${ARCHIVE_TMP2}" ] || die "failed to create temporary archive for package '${NAME}'"
@@ -194,10 +194,10 @@ fi
 cd "${D}"
 tar -cvf "${ARCHIVE_TMP1}" .  > "${PKG_LOGFILE}" 2>&1
 ${ARCHIVE_COMPRESSOR} "${ARCHIVE_TMP1}" > "${ARCHIVE_TMP2}" 2>> "${PKG_LOGFILE}"
-if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" ]; then
-	rm -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
+	rm -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}"
 fi
-mv -v "${ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}" >> "${PKG_LOGFILE}" 2>&1
+mv -v "${ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" >> "${PKG_LOGFILE}" 2>&1
 cd "${W}"
 find "${D}" -delete &
 

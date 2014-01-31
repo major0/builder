@@ -107,6 +107,8 @@ import()
 	# routine will source the build-rules to finish collecting data, so we
 	# end up sourcing the Buildrules twice.
 	eval $(build-query --environ "${1}")
+	RELEASE=
+	S=
 
 	# Source in the category Buildrules
 	if [ -f "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules" ]; then
@@ -126,6 +128,21 @@ import()
 
 	if [ -z "${DESCRIPTION}" ]; then
 		die "missing description in '${NAME}'"
+	fi
+
+	if test -z "${RELEASE}"; then
+		RELEASE="${VERSION#*-}"
+		if ! test -z "${RELEASE}" && test "${RELEASE}" != "${VERSION}"; then
+			VERSION="${VERSION%-${RELEASE}}"
+			if test -z "${S}"; then
+				S="${W}/${NAME}-${VERSION}-${RELEASE}"
+			fi
+		else
+			RELEASE='0'
+		fi
+	fi
+	if test -z "${S}"; then
+		S="${W}/${NAME}-${VERSION}"
 	fi
 }
 

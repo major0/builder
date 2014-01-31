@@ -37,7 +37,7 @@ for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
 	fi
 
 	package_make="$(echo "${package}"|tr '/-' '__')"
-	package_archive="${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+	package_archive="${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}"
 	package_install="${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 	package_logdir="${L}"
 

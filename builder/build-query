@@ -106,6 +106,8 @@ while [ "$#" -gt "0" ]; do
 		QUERY_ACTION="pkgdir";;
 	(-r|-rulefile|--rulesfile)
 		QUERY_ACTION="rulesfile";;
+	(--release)
+		QUERY_ACTION="release";;
 	(-R|-rdepends|--rdepends)
 		QUERY_ACTION="rdepends";;
 	(-rdeps-all|--rdeps-all)
@@ -230,6 +232,7 @@ esac
 # These variables are only set within a Rulesfile and thus need to be cleared
 # before sourcing it in.
 VERSION=
+RELEASE=
 DESCRIPTION=
 SOURCE_URI=
 PATCHES=
@@ -245,7 +248,17 @@ fi
 if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
 	SOURCE_URI="file://${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
 fi
-export VERSION DESCRIPTION SOURCE_URI PATCHES BDEPENDS RDEPENDS
+
+if test -z "${RELEASE}"; then
+	RELEASE="${VERSION#*-}"
+	if ! test -z "${RELEASE}" && test "${RELEASE}" != "${VERSION}"; then
+		VERSION="${VERSION%-${RELEASE}}"
+	else
+		RELEASE='0'
+	fi
+fi
+
+export VERSION RELEASE DESCRIPTION SOURCE_URI PATCHES BDEPENDS RDEPENDS
 
 # Ironically, the source working directory can't be assigned until we source in
 # the Buildrules due to the dependancy on the VERSION
@@ -260,6 +273,7 @@ case "${QUERY_ACTION}" in
 (rdeps_all)	recurse_rdeps ${RDEPENDS};;
 (descr)		echo "${DESCRIPTION}";;
 (version)	echo "${VERSION}";;
+(release)	echo "${RELEASE}";;
 (patches)	echo "${PATCHES}";;
 
 # Allow the caller to specify the variable to report.
@@ -285,6 +299,7 @@ case "${QUERY_ACTION}" in
 		CATEGORY="${CATEGORY}"
 		RULESFILE="${RULESFILE}"
 		VERSION="${VERSION}"
+		RELEASE="${RELEASE}"
 		DESCRIPTION="${DESCRIPTION}"
 		SOURCE_URI="${SOURCE_URI}"
 		EOF
@@ -324,6 +339,7 @@ case "${QUERY_ACTION}" in
 (summary)
 		echo "Name:		${CATEGORY}/${NAME}"
 		echo "Version:	${VERSION}"
+		echo "Release:	${RELEASE}"
 		echo "Source:		${SOURCE_URI}"
 		if [ ! -z "${RDEPENDS}" ]; then
 			echo "Depends:		${RDEPENDS}"
