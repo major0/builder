@@ -96,6 +96,8 @@ while [ "$#" -gt "0" ]; do
 		QUERY_ACTION="filesdir";;
 	(-l|-logdir|--logdir)
 		QUERY_ACTION="logdir";;
+	(-L|-license|--license)
+		QUERY_ACTION="license";;
 	(-n|-name|--name)
 		QUERY_ACTION="name";;
 	(-N|-pkgname|--pkgname)
@@ -234,6 +236,7 @@ esac
 VERSION=
 RELEASE=
 DESCRIPTION=
+LICENSE=
 SOURCE_URI=
 PATCHES=
 RDEPENDS=
@@ -258,7 +261,7 @@ if test -z "${RELEASE}"; then
 	fi
 fi
 
-export VERSION RELEASE DESCRIPTION SOURCE_URI PATCHES BDEPENDS RDEPENDS
+export VERSION RELEASE DESCRIPTION LICENSE SOURCE_URI PATCHES BDEPENDS RDEPENDS
 
 # Ironically, the source working directory can't be assigned until we source in
 # the Buildrules due to the dependancy on the VERSION
@@ -275,6 +278,7 @@ case "${QUERY_ACTION}" in
 (version)	echo "${VERSION}";;
 (release)	echo "${RELEASE}";;
 (patches)	echo "${PATCHES}";;
+(license)	echo "${LICENSE}";;
 
 # Allow the caller to specify the variable to report.
 # FIXME may need to protect our existing environ from being poked.
@@ -301,6 +305,7 @@ case "${QUERY_ACTION}" in
 		VERSION="${VERSION}"
 		RELEASE="${RELEASE}"
 		DESCRIPTION="${DESCRIPTION}"
+		LICENSE="${LICENSE}"
 		SOURCE_URI="${SOURCE_URI}"
 		EOF
 
@@ -340,6 +345,7 @@ case "${QUERY_ACTION}" in
 		echo "Name:		${CATEGORY}/${NAME}"
 		echo "Version:	${VERSION}"
 		echo "Release:	${RELEASE}"
+		echo "License:	${LICENSE}"
 		echo "Source:		${SOURCE_URI}"
 		if [ ! -z "${RDEPENDS}" ]; then
 			echo "Depends:		${RDEPENDS}"
