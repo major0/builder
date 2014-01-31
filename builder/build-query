@@ -37,6 +37,7 @@ parse_category()
 RECURSE_RDEPENDS='false'
 recurse_bdeps()
 {
+	test "$#" -eq '0' && return
 	if ${RECURSE_RDEPENDS}; then
 		set -- "${@}" $(build query -R "${1}")
 	else
@@ -65,6 +66,7 @@ recurse_bdeps()
 }
 recurse_rdeps()
 {
+	test "$#" -eq '0' && return
 	RECURSE_RDEPENDS='true'
 	recurse_bdeps "${@}"
 }
