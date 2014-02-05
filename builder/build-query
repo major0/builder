@@ -169,7 +169,10 @@ if [ "${QUERY_ACTION}" = "toolchain" ]; then
 	EOF
 	export CC CXX CROSS_COMPILE
 
-	for cmd in ld ar strip ranlib; do
+	# Note: we do not set AS since we often use gcc as the assembler
+
+	for cmd in ar ld strip ranlib autom4te autoconf autoheader automake \
+		aclocal autopoint libtool libtoolize; do
 		var="$(echo "${cmd}"|tr '[a-z]' '[A-Z]')"
 		if command -v "${CROSS_COMPILE}${cmd}" > /dev/null 2>&1; then
 			echo  "${var}=${CROSS_COMPILE}${cmd}"

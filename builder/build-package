@@ -29,15 +29,6 @@ pkg_prep()
 
 pkg_compile()
 {
-	CC="${CHOST}-gcc"
-	CXX="${CHOST}-g++"
-	AS="${CHOST}-as"
-	LD="${CHOST}-ld"
-	STRIP="${CHOST}-strip"
-	RANLIB="${CHOST}-ranlib"
-	LIBTOOL="${CHOST}-libtool"
-	export CC CXX AS LD STRIP RANLIB LIBTOOL
-
 	# FIXME these defaults need moved elsewhere
 	if [ -f "configure" ]; then
 		./configure	--host="${CHOST}"			\
