@@ -22,14 +22,11 @@ exit_cleanup()
 }
 trap exit_cleanup EXIT
 
-pkg_prep()
-{
-		return
-}
+build_prep() { return; }
+pkg_prep() { build_prep; }
 
-pkg_compile()
+build_compile()
 {
-	# FIXME these defaults need moved elsewhere
 	if [ -f "configure" ]; then
 		./configure	--host="${CHOST}"			\
 				--prefix="/usr" --mandir=/usr/share/man	\
@@ -38,10 +35,10 @@ pkg_compile()
 				${CONFIG_OPTS}
 	fi
 
-	# FIXME we need a bunch of make options in here
 	make ${MAKE_OPTS}
 	make DESTDIR="${D}" install
 }
+pkg_compile() { build_compile; }
 
 import "${1}"
 
