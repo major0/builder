@@ -69,7 +69,11 @@ ${DESCRIPTION}
 
 %files
 EOF
-tr '\000' '\n' < "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" | sed -e 's,^,/,' >> "${S}/SPECS/${NAME}-${VERSION}.spec"
+# FIXME In the long run we should see about producing -dbg and -dev rpms
+tr '\000' '\n' < "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" \
+	| sed -e 's,^,/,' \
+	| grep -v '^/usr/include' | grep -v 'pkgconfig' | grep -v '^*\.a$' \
+	>> "${S}/SPECS/${NAME}-${VERSION}.spec"
 
 #mkdir -p "${D}"
 #cd "${D}"
