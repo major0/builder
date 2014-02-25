@@ -265,12 +265,8 @@ fi
 export TARGET
 export SYSROOT
 
-# If the MAKE_OPTS are not set then find the number of CPU's and set them.
-if [ -z "${MAKE_OPTS}" ]; then
-	NUM_CPUS="$(awk '/^processor/{print$3}'< /proc/cpuinfo|sort|uniq|tail -n 1)"
-	NUM_CPUS="$((${NUM_CPUS} + 1))"
-	MAKE_OPTS="-j$((${NUM_CPUS} + 1))"
-fi
+# Set MAKE_OPTS if not already set
+MAKE_OPTS="${MAKE_OPTS:--j2}"
 export MAKE_OPTS
 
 # Available to be set in the config
