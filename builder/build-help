@@ -1,0 +1,61 @@
+#!/usr/bin/env build
+
+while test "$#" -gt '0'; do
+	case "${1}" in
+	(--)	shift; break;;
+	(-*)	die "unknown option '${1}'";;
+	(*)	exec build "${1}" --help;;
+	esac
+done
+
+## usage
+# Simply display the builder usage.  Though it would be nice if some of this
+# information was pushed down into the sub-commands.
+usage()
+{
+cat<<EOF
+usage: ${0##*/} [options] <command> [command-opts] [all|<category>/<package|all> ...]
+
+Options
+-------
+ -v, --version	Display the builder version.
+ -d, --debug	Enable debug logging.
+ -h, --help	Display the builder help and exit (may appear anywhere on the
+		command line).
+
+Commands
+--------
+  query		The query is used internally by builder, while allowing
+		one to query various packages from the builder repository.
+
+  source	Create a copy/checkout of the package sources inside of
+		packages/<category>/<name>/source.  The source/ directory
+		within a package takes precendences over the SOURCE_URI,
+		allowing in-place development of various packages.  This is
+		particularly useful if the SOURCE_URI is an SCM.
+
+  fetch		Fetch the sources for a package from the SOURCE_URI and store
+		them into the sources/ top-level directory.  This is done
+		automatically for all commands which depend on it.
+
+  package	Prep, compile and construct a binary "artifact" file for a
+		given package.  This command is performed automatically for all
+		commands which depend on it.
+
+  install	Install a binary artifact into the sysroot. This action is
+		performed automatically for any packages which the current
+		target depends on.  If necessary produce binary artifacts for
+		all package deps.
+
+  clean		Clean specified package from sysroot and artifacts.
+
+  distclean	Clean up specified package from sysroot, artifacts, and sources.
+
+  export	Export the binary package to an rpm.
+
+EOF
+}
+
+
+
+# vim: filetype=sh
