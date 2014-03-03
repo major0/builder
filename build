@@ -130,9 +130,12 @@ while [ "$#" -gt "0" ]; do
 		set -x
 		;;
 	(-h|-help|--help)
-		set -- help;;
+		shift 1
+		set -- help "$@"
+		break
+		;;
 	(-*)	echo "error: unknown option '${1}'" >&2
-		echo "try '${0} --help'" >&2
+		echo "try '${0} help'" >&2
 		exit 1
 		;;
 	(*)	break
@@ -244,9 +247,10 @@ fi
 
 # query is a special case
 # FIXME this is semi-busted
-if [ "${ACTION}" = "query" ]; then
-	exec "${BUILDER_LIBDIR}/build-query" "${@}"
-fi
+case "${ACTION}" in
+	(query) exec "${BUILDER_LIBDIR}/build-query" "${@}";;
+	(help) exec "${BUILDER_LIBDIR}/build-help" "${@}";;
+esac
 
 # If no target is given, then base our target on the current working directory,
 # falling back to "${PROJECT}/all" as our default.

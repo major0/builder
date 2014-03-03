@@ -11,8 +11,6 @@ done
 ## usage
 # Simply display the builder usage.  Though it would be nice if some of this
 # information was pushed down into the sub-commands.
-usage()
-{
 cat<<EOF
 usage: ${0##*/} [options] <command> [command-opts] [all|<category>/<package|all> ...]
 
@@ -54,8 +52,5 @@ Commands
   export	Export the binary package to an rpm.
 
 EOF
-}
-
-
 
 # vim: filetype=sh
