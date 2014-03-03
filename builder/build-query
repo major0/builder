@@ -1,5 +1,46 @@
 #!/usr/bin/env build
 
+usage()
+{
+cat<<END_OF_HELP
+usage: ${0##*/} [options] <arg>
+
+options:
+  --topdir		Builder topdir
+  --toolchain		Display the toolchain environ
+  --help		Display this help
+
+package options:
+  --bdepends		Package build dependancies [\$BDEPENDS]
+  --bdeps-all		Build dependancies of all packages depended on
+  --category		Package category [\$CATEGORY]
+  --description		Package Description [\$DESCRIPTION]
+  --destdir		Build-time destination directory [\$D]
+  --exists		Exit with a non-zero exit-status if pkg does not exist
+  --envdir		Package environment directory [unused]
+  --environ		Print the package environ
+  --filesdir		Package files/ directory [\$F]
+  --logdir		Package log directory [\$L]
+  --license		Package license [\$LICENSE]
+  --name		Package name [\$NAME]
+  --pkgname		Full package name [\$CATEGORY/\$NAME]
+  --patches		Patches used by a package [\$PATCHES]
+  --pkgdir		Path to package metadata
+  --rulesfile		Path to package Buildrules file [\$RULESFILE]
+  --release		Package release number [\$RELEASE]
+  --rdepends		Package runtime dependancies [\$RDEPENDS]
+  --rdeps-all		Runtime dependancies of all packages depended on
+  --srcdir		Package source directory [\$S]
+  --summary		Display package summary in specfile format
+  --tmpdir		Package temporary directory [\$T]
+  --src-uri		URI to package source(s) [\$SOURCE_URI]
+  --version		Package version [\$VERSION]
+  --var			Query specific variable from package
+  --workdir		Package work directory [\$W]
+
+END_OF_HELP
+}
+
 parse_pkg_name()
 {
 	# Only allow a single '/' in the name
@@ -71,6 +112,12 @@ recurse_rdeps()
 	recurse_bdeps "${@}"
 }
 
+# Look for cries for --help in the cmdline
+for arg; do
+	case "${arg}" in
+	(-h|-help|--help) usage; exit 0;;
+	esac
+done
 
 QUERY_ACTION="summary"
 
@@ -150,7 +197,14 @@ while [ "$#" -gt "0" ]; do
 	shift
 done
 
-if [ "${QUERY_ACTION}" = "toolchain" ]; then
+# FIXME move these to 'build', or some other command, or something.They don't
+# belong in the package-query command.
+case "${QUERY_ACTION}" in
+(topdir)
+	echo "${BUILDER_TOPDIR}"
+	exit 0;;
+
+(toolchain)
 
 	if [ "$#" -gt "0" ] && [ "${1}" != "${CHOST}" ]; then
 		CROSS_COMPILE="${1}-"
@@ -182,8 +236,10 @@ if [ "${QUERY_ACTION}" = "toolchain" ]; then
 		echo "export ${var}"
 	done
 
-	exit 0
-elif [ "$#" -eq "0" ]; then
+	exit 0;;
+esac
+
+if test "$#" -eq "0"; then
 	die "no package specified"
 fi
 
@@ -230,7 +286,6 @@ case "${QUERY_ACTION}" in
 (logdir)	echo "${L}";exit 0;;
 (envdir)	echo "${E}";exit 0;;
 (tmpdir)	echo "${T}";exit 0;;
-(topdir)	echo "${BUILDER_TOPDIR}"; exit 0;;
 (destdir)	echo "${D}";exit 0;;
 esac
 
