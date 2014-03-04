@@ -1,5 +1,19 @@
 #!/usr/bin/env build
 
+usage()
+{
+cat<<END_OF_USAGE
+usage: ${0##*/} [options] <url>
+
+options:
+
+  -N, --name		Return the filename portion of the URL
+  -V, --var		Return the variable portion of the URL
+  -h, --help		Display this help
+
+END_OF_USAGE
+}
+
 build_fetch_clean()
 {
 	for arg in ${BUILD_FETCH_CLEAN}; do
@@ -218,6 +232,14 @@ build_fetch_http()
 
 	unset build_fetch_http_file
 }
+
+
+# Look for requests for help "anywhere" in the command line
+for arg; do
+	case "${arg}" in
+	(-h|-help|--help) usage; exit 0;;
+	esac
+done
 
 FETCH_ACTION="fetch"
 while [ "$#" -gt "0" ]; do
