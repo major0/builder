@@ -1,5 +1,4 @@
 #!/usr/bin/env build
-set -e
 
 echo "building source: ${1}"
 

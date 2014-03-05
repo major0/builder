@@ -1,5 +1,4 @@
 #!/usr/bin/env build
-set -e
 
 ARCHIVE_TMP1=
 ARCHIVE_TMP2=
