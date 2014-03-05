@@ -1,6 +1,6 @@
 #!/usr/bin/env build
 
-import "${1}"
+load_rules "${1}"
 
 if test -z "${LICENSE}"; then
 	die "no license set in '${1}'"

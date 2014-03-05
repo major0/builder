@@ -40,7 +40,7 @@ build_compile()
 }
 pkg_compile() { build_compile; }
 
-import "${1}"
+load_rules "${1}"
 
 ## Cleanup the build build environment
 for dir in "${S}" "${D}"; do
@@ -109,9 +109,9 @@ if [ ! -z "${PATCHES}" ]; then
 fi
 
 
-# Declare compilation variables before import as the package may potentially
-# overwrite this data, in particular the toolchain data is usually rewritten
-# within the toolchain/buildtools rule.
+# Declare compilation variables before loading the rules as the package may
+# potentially overwrite this data, in particular the toolchain data is usually
+# rewritten within the toolchain/buildtools rule.
 echo "compiling: ${1}"
 eval "$(build-query --toolchain "${CHOST}")"
 mkenv "compile"
@@ -126,7 +126,7 @@ export PKG_CONFIG_SYSROOT_DIR
 # Don't pass along the builder jobcontrol data to child processes
 unset MAKEFLAGS
 
-import "${1}"
+load_rules "${1}"
 
 ## Prep the build environment
 # Technically much of this should have been done in build-prep, and this sort

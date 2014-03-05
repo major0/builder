@@ -41,9 +41,9 @@ die()
 	exit 1
 }
 
-## import <package>
-# import a package into the current program space
-import()
+## load_rules <package>
+# load the Buildrules of a package into the current program space
+load_rules()
 {
 	# Evaluate our environment data
 	# There is a bit of a performance penalty here in that the query

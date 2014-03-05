@@ -8,7 +8,7 @@ pkg_prep()
 		return
 }
 
-import "${1}"
+load_rules "${1}"
 
 build_source_clean()
 {
