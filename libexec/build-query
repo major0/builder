@@ -197,8 +197,7 @@ while [ "$#" -gt "0" ]; do
 	shift
 done
 
-# FIXME move these to 'build', or some other command, or something.They don't
-# belong in the package-query command.
+# FIXME move these to 'build-config'. 'build-query' is for package data
 case "${QUERY_ACTION}" in
 (topdir)
 	echo "${BUILDER_TOPDIR}"
