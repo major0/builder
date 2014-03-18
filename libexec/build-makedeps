@@ -33,7 +33,8 @@ exports_clean:
 EOF
 
 PACKAGES_CLEAN=
-for package in $(cd "${BUILDER_PKGDIR}" && echo */*); do
+for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
+	test -d "${package}" || die "no packages defined"
 	if ! test -f "${BUILDER_PKGDIR}/${package}/Buildrules"; then
 		error "no rulesfile for package '${package}'"
 		continue
