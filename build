@@ -1,6 +1,24 @@
 #!/bin/sh
 set -e
 
+## true
+# avoid the shell overhead of fork/exec'ing just to call /bin/true
+# returns true
+true() { : ; }
+
+## false
+# avoid the shell overhead of fork/exec'ing just to call /bin/false
+# returns false
+false() { ! : ; }
+
+## error <message>
+# displays the supplied <message> on stderr
+error() { echo "error: $*" >&2; }
+
+## die <message>
+# display the supplied <message> and exit with an error
+die() { error "$*"; exit 1; }
+
 ## mkenv
 # prepare the environment structure for the current package
 mkenv()
@@ -20,25 +38,12 @@ mkenv()
 
 ## cleanup
 # deal with temporary junk when we exit
+# FIXME we need a way to universally deal w/ cleanup of junk created by
+# imported commands.
 cleanup()
 {
 	test -f "${BUILDER_MAKEFILE}" && rm -f "${BUILDER_MAKEFILE}"
 	test -p "${BUILDER_PIPE}" && rm -f "${BUILDER_PIPE}"
-}
-
-## error <message>
-# displays the supplied <message> on stderr
-error()
-{
-	echo "error: $*" >&2
-}
-
-## die <message>
-# display the supplied <message> and exit with an error
-die()
-{
-	error "$*"
-	exit 1
 }
 
 ## load_rules <package>
