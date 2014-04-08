@@ -1,22 +1,79 @@
 #!/usr/bin/env build
 
-while test "$#" -gt '0'; do
-	case "${1}" in
-	(--)	shift; break;;
-	(-*)	die "unknown option '${1}'";;
-	(*)	if test -x "${BUILDER_LIBDIR}/build-make-${1}"; then
-			exec build "make-${1}" --help
-		fi
-		exec build "${1}" --help;;
-	esac
-done
+# FIXME find this dynamically
+WIDTH="${WIDTH:-80}"
 
+build_usage() { printf 'usage: build [options] <command> [command-opts] [all|<category>/<package|all> ...]\n\n'; }
+
+build_commands()
+{
+	BUILDER_COMMANDS=
+	BUILDER_CMD_WIDTH='0'
+
+	build_usage
+	echo "available builder commands from '${BUILDER_LIBDIR}':"
+	for cmd in $(cd "${BUILDER_LIBDIR}" && echo build-*); do
+		test -e "${BUILDER_LIBDIR}/${cmd}" || continue
+		BUILDER_COMMANDS="${BUILDER_COMMANDS} ${cmd#build-}"
+		length="$(echo "${cmd#build-}"|wc -c)"
+
+		if test "${length}" -gt "${BUILDER_CMD_WIDTH}"; then
+			BUILDER_CMD_WIDTH="${length}"
+		fi
+	done
+
+	BUILDER_COMMANDS="$(for cmd in ${BUILDER_COMMANDS}; do echo "${cmd}"; done|sort|uniq)"
+	length='0'
+	for cmd in ${BUILDER_COMMANDS}; do
+		printf "  %-${BUILDER_CMD_WIDTH}s" "${cmd}"
+		length="$((${length} + ${BUILDER_CMD_WIDTH} + 2))"
+		if test "${length}" -gt "${WIDTH}"; then
+			printf '\n'
+			length='0'
+		fi
+	done
+	printf '\n'
+
+	# Find commands from ${PATH}
+	BUILDER_COMMANDS=
+	BUILDER_CMD_LENGTH='0'
+	IFS=':'
+	set -- ${PATH}
+	for dir; do
+		for cmd in $(cd "${dir}" && echo build-*); do
+			test -e "${dir}/${cmd}" || continue
+			BUILDER_COMMANDS="${BUILDER_COMMANDS} ${cmd#build-}"
+			length="$(echo "${cmd#build-}"|wc -c)"
+
+			if test "${length}" -gt "${BUILDER_CMD_WIDTH}"; then
+				length="${BUILDER_CMD_WIDTH}"
+			fi
+		done
+	done
+	unset dir
+
+	BUILDER_COMMANDS="$(for cmd in ${BUILDER_COMMANDS}; do echo "${cmd}"; done|sort|uniq)"
+	test -z "${BUILDER_COMMANDS}" && return
+	echo "available builder commands from '${BUILDER_LIBDIR}':"
+	length='0'
+	for cmd in ${BUILDER_COMMANDS}; do
+		printf "  %-${BUILDER_CMD_WIDTH}s" "${cmd}"
+		length="$((${length} + ${BUILDER_CMD_WIDTH} + 2))"
+		if test "${length}" -gt "${WIDTH}"; then
+			printf '\n'
+			length='0'
+		fi
+	done
+	printf '\n'
+}
+
+build_help()
+{
+build_usage
 ## usage
 # Simply display the builder usage.  Though it would be nice if some of this
 # information was pushed down into the sub-commands.
 cat<<EOF
-usage: build [options] <command> [command-opts] [all|<category>/<package|all> ...]
-
 Options
 -------
  -v, --version	Display the builder version.
@@ -54,6 +111,24 @@ Commands
 
   export	Export the binary package to an rpm.
 
+  help		Display this help. Try 'help --all' to list all commands'.
 EOF
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	while test "$#" -gt '0'; do
+		case "${1}" in
+		(--all)	build_commands; exit 0;;
+		(--)	shift; break;;
+		(-*)	die "unknown option '${1}'";;
+		(*)	if test -x "${BUILDER_LIBDIR}/build-make-${1}"; then
+				exec build "make-${1}" --help
+			fi
+			exec build "${1}" --help;;
+		esac
+	done
+
+	build_help
+fi
 
 # vim: filetype=sh
