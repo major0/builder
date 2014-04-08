@@ -119,7 +119,7 @@ load_rules()
 	fi
 }
 
-if [ ! -z "${BUILDER_DEBUG}" ]; then
+if [ "${BUILDER_DEBUG:-0}" != '0' ]; then
 	set -x
 fi
 
