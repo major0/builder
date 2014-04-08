@@ -1,5 +1,27 @@
 #!/usr/bin/env build
 
+usage()
+{
+cat<<END_OF_USAGE
+END_OF_USAGE
+}
+
+for arg; do
+	case "${arg}" in
+	(-h|-help|--help) usage; exit 0;;
+	esac
+done
+
+while test "$#" -gt '0'; do
+	case "$1" in
+	(-*)	error "unknown argument '${1}'"
+		echo "try 'build help install'" >&2
+		exit 1;;
+	(--)	shift; break;;
+	(*)	break;;
+	esac
+done
+
 echo "installing: ${1}"
 eval $(build-query --environ "${1}")
 

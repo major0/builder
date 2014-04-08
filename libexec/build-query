@@ -3,7 +3,7 @@
 usage()
 {
 cat<<END_OF_HELP
-usage: ${0##*/} [options] <arg>
+usage: build-query [options] <arg>
 
 options:
   --topdir		Builder topdir
