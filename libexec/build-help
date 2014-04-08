@@ -4,7 +4,10 @@ while test "$#" -gt '0'; do
 	case "${1}" in
 	(--)	shift; break;;
 	(-*)	die "unknown option '${1}'";;
-	(*)	exec build "${1}" --help;;
+	(*)	if test -x "${BUILDER_LIBDIR}/build-make-${1}"; then
+			exec build "make-${1}" --help
+		fi
+		exec build "${1}" --help;;
 	esac
 done
 

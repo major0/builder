@@ -32,7 +32,7 @@ fi
 cd "${T}"
 
 for url in ${SOURCE_URI}; do
-	file="$(build-fetch --name "${url}")"
+	file="$(build-make-fetch --name "${url}")"
 	test -f "${BUILDER_SRCDIR}/${file}" || die "source does not exist '${file}'"
 	cp "${BUILDER_SRCDIR}/${file}" "${NAME}-${VERSION}.builder/"
 done

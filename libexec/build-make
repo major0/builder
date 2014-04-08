@@ -1,0 +1,112 @@
+#!/usr/bin/env build
+
+while test "$#" -gt '0'; do
+	case "${1}" in
+	(-h|-help|--help) usage; exit 0;;
+	(--)	shift; break;;
+	(-*)	error "unknown optopn '${1}'"
+		echo "try 'build help make'" >&2
+		exit 1;;
+	(*)	break;;
+	esac
+done
+
+if test "$#" -eq '0'; then
+	error 'no make action specified'
+	echo "try 'build help make'" >&2
+	exit 1
+fi
+
+BUILDER_MAKE_ACTION="${1}"
+shift
+
+# This allows 'build install --help' to work.
+for arg; do
+	case "${arg}" in
+	(-h|-help|--help) exec build make-"${BUILDER_MAKE_ACTION}" --help;;
+	esac
+done
+
+# If no target is given, then base our target on the current working directory,
+# falling back to "${PROJECT}/all" as our default.
+if test "$#" -eq '0'; then
+	# Are we somewhere within the pkg structure.  If this test succeeds
+	# then we are at least in a category directory within the pkgdir.  Just
+	# being in pkgdir is not enough to change our default argument list
+	# handling.
+	NAME="${TARGET}"
+	if [ "${PWD##${BUILDER_PKGDIR}/}" != "${PWD}" ]; then
+		category="${PWD##${BUILDER_PKGDIR}/}"
+		if [ "${category%%/*}" != "${category}" ]; then
+			name="${category#*/}"
+			category="${category%%/*}"
+			NAME="${category}/${name%%/*}"
+		else
+			NAME="${category}/all"
+		fi
+		unset category
+		unset name
+	fi
+	set -- "${NAME}"
+fi
+
+# FIXME move this to a sub-command to be used by other tools.
+for package in "$@"; do
+	# If all is specified anywhere in the argument list than just discard
+	# everything else.
+	case "${package}" in
+	(-*|all) continue;;
+	esac
+
+	# FIXME we need a resolver for things like all/all and <category>/all
+	CATEGORY="${package%%/*}"
+	if [ "${CATEGORY}" != 'all' ]; then
+		if [ ! -d "${BUILDER_PKGDIR}/${CATEGORY}" ]; then
+			die "invalid package category '${CATEGORY}'"
+		fi
+		if [ "${package##*/}" != "all" ]; then
+			if ! build-query --exists "${package}"; then
+				exit 1
+			fi
+		fi
+	fi
+done
+
+# sort/uniq the argument list
+# FIXME need a way to "resolve" the package list instead of possibly clobbering
+# it.
+set -- $(for package in "$@"; do echo "${package}" ; done | sort | uniq)
+
+# build the Makefile
+trap cleanup EXIT
+test -d "${BUILDER_TMPDIR}" || mkdir -p "${BUILDER_TMPDIR}"
+BUILDER_MAKEFILE="$(mktemp "${BUILDER_TMPDIR}/builder_makefile.XXXXXXXX")"
+if [ ! -f "${BUILDER_MAKEFILE}" ]; then
+	die "failed to generate build dependencies"
+fi
+export BUILDER_MAKEFILE
+"${BUILDER_LIBDIR}/build-makedeps" || die "failed generate build dependencies"
+
+packages=
+for package in "$@"; do
+	case "${package}" in
+	(*/all);;
+	(*) package="$(build-query --pkgname "${package}")";;
+	esac
+	package="$(echo "${package}"|tr '/-' '__')"
+	packages="${packages} ${package}_${BUILDER_MAKE_ACTION}"
+done
+set -- ${packages}
+unset packages
+
+# The 'tee' command will discard the exit status from 'make', so we have to
+# jump through a few hoops to capture the exit status in a portable fashion.
+BUILDER_PIPE="`mktemp "${BUILDER_TMPDIR}/builder_pipe.XXXXXXXX"`"
+test -f "${BUILDER_PIPE}" || die 'failed to generate log-pipe placeholder'
+rm -f "${BUILDER_PIPE}" && mkfifo "${BUILDER_PIPE}" || die 'failed to create log-pipe'
+tee "${BUILDER_TMPDIR}/builder.log" < "${BUILDER_PIPE}" &
+BUILDER_LOGGER="$!"
+make -r -f "${BUILDER_MAKEFILE}" "${@}" > "${BUILDER_PIPE}" 2>&1
+exit $?
+
+# vim: filetype=sh

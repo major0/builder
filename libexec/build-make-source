@@ -34,7 +34,7 @@ build_source_args()
 
 build_source()
 {
-	file="$(build-fetch --name "${1}")"
+	file="$(build-make-fetch --name "${1}")"
 	if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
 		die "source does not exist '${file}'"
 	fi

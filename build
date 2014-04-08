@@ -100,11 +100,10 @@ fi
 
 ##
 # Check to see if we are wrapping a sub-command
-# FIXME support custom commands
 BUILDER_COMMAND=
 if [ -f "${1}" ]; then
-	case "${1}" in
-	(*build-*)
+	case "${1##*/}" in
+	(build-*)
 		BUILDER_COMMAND="${1}"
 		shift
 		. "${BUILDER_COMMAND}"
@@ -195,10 +194,10 @@ export BUILDER_CONFIG
 MAKE_OPTS="${MAKE_OPTS:--j2}"
 export MAKE_OPTS
 
-# Available to be set in the config
-PROJECT="${PROJECT:-platform}"
-ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-tar.bz2}"
-export PROJECT ARCHIVE_FORMAT
+# Default build target
+# FIXME this should default to all/all
+TARGET="${TARGET:-all/all}"
+export TARGET
 
 # If unspecified go ahead and ask gcc
 CBUILD="${CBUILD:-$(build-dumpmachine)}"
@@ -221,88 +220,16 @@ if [ "$#" -gt "0" ]; then
 	shift 1
 fi
 
-# FIXME Support custom commands somehow..
-if [ ! -x "${BUILDER_LIBDIR}/build-${ACTION}" ]; then
+if command -v "build-make-${ACTION}" 2>&1 > /dev/null; then
+	BUILDER_COMMAND="$(command -v 'build-make')"
+	set -- "${ACTION}" "${@}"
+elif command -v "build-${ACTION}" 2>&1 > /dev/null; then
+	BUILDER_COMMAND="$(command -v "build-${ACTION}")"
+else
 	error "unknown action '${ACTION}'"
 	echo "try '${0} help'" >&2
 	exit 1
 fi
+export BUILDER_COMMAND
 
-# query is a special case
-# FIXME this is semi-busted
-case "${ACTION}" in
-	(query) exec "${BUILDER_LIBDIR}/build-query" "${@}";;
-	(help) exec "${BUILDER_LIBDIR}/build-help" "${@}";;
-esac
-
-# If no target is given, then base our target on the current working directory,
-# falling back to "${PROJECT}/all" as our default.
-if [ "$#" -lt "1" ]; then
-	# Are we somewhere within the pkg structure.  If this test succeeds
-	# then we are at least in a category directory within the pkgdir.  Just
-	# being in pkgdir is not enough to change our default argument list
-	# handling.
-	NAME="all"
-	if [ "${PWD##${BUILDER_PKGDIR}/}" != "${PWD}" ]; then
-		category="${PWD##${BUILDER_PKGDIR}/}"
-		if [ "${category%%/*}" != "${category}" ]; then
-			name="${category#*/}"
-			category="${category%%/*}"
-			NAME="${category}/${name%%/*}"
-		else
-			NAME="${category}/all"
-		fi
-		unset category
-		unset name
-	fi
-	set -- "${NAME}"
-fi
-
-for package in "$@"; do
-	# If all is specified anywhere in the argument list than just discard
-	# everything else.
-	if [ "${package}" = "all" ]; then
-		continue
-	fi
-	CATEGORY="${package%%/*}"
-	if [ ! -d "${BUILDER_PKGDIR}/${CATEGORY}" ]; then
-		die "invalid package category '${CATEGORY}'"
-	fi
-	if [ "${package##*/}" != "all" ]; then
-		if ! build-query --exists "${package}"; then
-			exit 1
-		fi
-	fi
-done
-# sort/uniq the argument list
-set -- $(for package in "$@"; do echo "${package}" ; done | sort | uniq)
-
-# build the Makefile
-trap cleanup EXIT
-BUILDER_MAKEFILE="$(mktemp ${BUILDER_TMPDIR}/builder_makefile.XXXXXXXX)"
-if [ ! -f "${BUILDER_MAKEFILE}" ]; then
-	die "failed to generate build dependencies"
-fi
-export BUILDER_MAKEFILE
-"${BUILDER_LIBDIR}/build-makedeps" || die "failed generate build dependencies"
-
-packages=
-for package in "$@"; do
-	if [ "${package##*/}" != "all" ]; then
-		package="$(build-query --pkgname "${package}")"
-	fi
-	package="$(echo "${package}"|tr '/-' '__')"
-	packages="${packages} ${package}_${ACTION}"
-done
-set -- ${packages}
-unset packages
-
-# The 'tee' command will discard the exit status from 'make', so we have to
-# jump through a few hoops to capture the exit status in a portable fashion.
-BUILDER_PIPE="`mktemp "${BUILDER_TMPDIR}/builder_pipe.XXXXXXXX"`"
-test -f "${BUILDER_PIPE}" || die 'failed to generate log-pipe placeholder'
-rm -f "${BUILDER_PIPE}" && mkfifo "${BUILDER_PIPE}" || die 'failed to create log-pipe'
-tee "${BUILDER_TMPDIR}/builder.log" < "${BUILDER_PIPE}" &
-BUILDER_LOGGER="$!"
-make -r -f "${BUILDER_MAKEFILE}" "${@}" > "${BUILDER_PIPE}" 2>&1
-exit $?
+exec "${BUILDER_COMMAND}" "${@}"

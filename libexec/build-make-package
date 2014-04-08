@@ -69,7 +69,7 @@ if [ -d "${SOURCE_DIR}" -o -L "${SOURCE_DIR}" ]; then
 else
 	# FIXME this stuff needs a lot of work
 	for url in ${SOURCE_URI}; do
-		file="$(build-fetch --name "${url}")"
+		file="$(build-make-fetch --name "${url}")"
 		if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
 			die "source does not exist '${file}'"
 		fi
