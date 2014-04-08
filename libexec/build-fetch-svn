@@ -1,0 +1,69 @@
+#!/usr/bin/env build
+
+build_fetch_svn()
+{
+	build_fetch_svn_uri="$(build-make-fetch --uri "${1}")"
+	build_fetch_svn_uri="${build_fetch_svn_uri%%\?*}"
+	build_fetch_svn_proto=svn
+	for arg in $(build-make-fetch --args "${1}"); do
+		case "${arg}" in
+		(archive=*) build_fetch_svn_var="${arg##*=}";;
+		(proto=*) build_fetch_svn_proto="${arg##*=}";;
+		esac
+	done
+	if test -z "${build_fetch_svn_var}"; then
+		die "do not know how to store source from '${1}'"
+	fi
+
+	build_fetch_svn_dir="${build_fetch_svn_var%%.t*}"
+	build_fetch_svn_tmp="$(mktemp -d "${BUILDER_TMPDIR}/${build_fetch_svn_dir}.XXXXXX")"
+	cd "${build_fetch_svn_tmp}"
+	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_svn_tmp}"
+
+	if ! svn checkout "${build_fetch_svn_proto}${build_fetch_svn_uri#svn}" "${build_fetch_svn_dir}"; then
+		die "failed to checkout svn source at '${build_fetch_svn_uri}'"
+	fi
+
+	cd "${build_fetch_svn_tmp}"
+	tar caf "${build_fetch_svn_var}" "${build_fetch_svn_dir}"
+
+	if test ! -d "${BUILDER_SRCDIR}"; then
+		mkdir -p "${BUILDER_SRCDIR}"
+	fi
+
+	mv "${build_fetch_svn_var}" "${BUILDER_SRCDIR}/${build_fetch_svn_var}"
+
+	if [ -d "${build_fetch_svn_tmp}" ]; then
+		rm -rf "${build_fetch_svn_tmp}"
+	fi
+
+	unset build_fetch_svn_tmp
+	unset build_fetch_svn_var
+	unset build_fetch_svn_proto
+	unset build_fetch_svn_dir
+	unset build_fetch_svn_uri
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	build_fetch_svn_usage() { printf 'usage: build-fetch-svn <url>\n'; }
+
+	for arg; do
+		case "${arg}" in
+		(-h|-help|--help)	build_fetch_svn_usage;;
+		esac
+	done
+
+	while test "$#" -gt '0'; do
+		case "$1" in
+		(-*)	error "unknown argument '${1}'"
+			echo "try 'build fetch-svn --help'" >&2
+			exit 1;;
+		(--)	shift 1; break;;
+		(*)	break;;
+		esac
+	done
+
+	build_fetch_svn "${1}"
+fi
+
+# vim: filetype=sh

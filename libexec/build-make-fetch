@@ -3,12 +3,14 @@
 usage()
 {
 cat<<END_OF_USAGE
-usage: ${0##*/} [options] <url>
+usage: build-fetch [options] <url>
 
 options:
 
+  -A, --args		Return the argument portion of the URL
   -N, --name		Return the filename portion of the URL
   -V, --var		Return the variable portion of the URL
+  -U, --uri		Return the URI portion of the URL
   -h, --help		Display this help
 
 END_OF_USAGE
@@ -25,10 +27,7 @@ build_fetch_clean()
 	done
 }
 
-build_fetch_uri()
-{
-	printf '%s' "${1%%\?*}"
-}
+build_fetch_uri() { printf '%s' "${1%%\?*}"; }
 
 build_fetch_args()
 {
@@ -79,161 +78,6 @@ build_fetch_var()
 	printf 'fetch_%s' "$(build_fetch_name "${1}" | sed -e 's/[+.-]/_/g')"
 }
 
-build_fetch_git()
-{
-	build_fetch_git_uri="$(build_fetch_uri "${1}")"
-	build_fetch_git_uri="${build_fetch_git_uri#git://}"
-	build_fetch_git_uri="${build_fetch_git_uri%%\?*}"
-	build_fetch_git_tag=
-	build_fetch_git_var=
-	for arg in $(build_fetch_args "${1}"); do
-		case "${arg}" in
-		(archive=*) build_fetch_git_var="${arg##*=}";;
-		(*)		 build_fetch_git_tag="${arg}";;
-		esac
-	done
-	if [ -z "${build_fetch_git_var}" ]; then
-		die "do not know how to store source from '${1}'"
-	fi
-
-	# We want to avoid avoid copying the repository and all of its history
-	# in order to perform a single build, unfortunately git does not give a
-	# clear-cut approach to checkout out a specific tag or the head of a
-	# specific branch, instead we have to jump through some hoops.
-	build_fetch_git_dir="${build_fetch_git_var%%.t*}"
-	build_fetch_git_tmp="$(mktemp -d "${BUILDER_TMPDIR}/${build_fetch_git_dir}.XXXXXX")"
-	cd "${build_fetch_git_tmp}"
-	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_git_tmp}"
-
-	case "${build_fetch_git_uri}" in
-	(*:[0-9]*)	build_fetch_git_uri="git://${build_fetch_git_uri}";;
-	(*:*);;		# Git over ssh?
-	(*)		build_fetch_git_uri="git://${build_fetch_git_uri}";;
-	esac
-
-	if [ ! -z "${build_fetch_git_tag}" ]; then
-		case "${build_fetch_git_tag}" in
-		(tags/*)
-			if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
-				die "failed to clone git source at '${build_fetch_git_uri}'"
-			fi
-
-			if ! cd "${build_fetch_git_dir}"; then
-				die "failed to change working directory to '${build_fetch_git_dir}'"
-			fi
-
-			if ! git fetch --tags --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_tag}"; then
-				die "failed to fetch git branch/tag '${build_fetch_git_tag}'"
-			fi
-
-			if ! git checkout "${build_fetch_git_tag}"; then
-				die "failed to checkout git branch/tag '${build_fetch_git_tag}'"
-			fi
-			;;
-		(*)
-			if ! git clone --depth 1 --branch "${build_fetch_git_tag}" "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
-				die "failed to clone git source at '${build_fetch_git_uri}'"
-			fi
-			;;
-		esac
-	else
-		if ! git clone --depth 1 "${build_fetch_git_uri}" "${build_fetch_git_dir}"; then
-			die "failed to clone git source at '${build_fetch_git_uri}'"
-		fi
-	fi
-
-	cd "${build_fetch_git_tmp}"
-	case "${build_fetch_git_var}" in
-	(*tar.Z|*tz)	tar cZf "${build_fetch_git_var}" "${build_fetch_git_dir}";;
-	(*tgz|*tar.gz)	tar czf "${build_fetch_git_var}" "${build_fetch_git_dir}";;
-	(*tar.bz2)	tar cjf "${build_fetch_git_var}" "${build_fetch_git_dir}";;
-	(*)		tar caf "${build_fetch_git_var}" "${build_fetch_git_dir}";;
-	esac
-
-	if [ ! -d "${BUILDER_SRCDIR}" ]; then
-		mkdir -p "${BUILDER_SRCDIR}"
-	fi
-
-	mv "${build_fetch_git_var}" "${BUILDER_SRCDIR}/${build_fetch_git_var}"
-
-	if [ -d "${build_fetch_git_tmp}" ]; then
-		rm -rf "${build_fetch_git_tmp}"
-	fi
-
-	unset build_fetch_git_tmp
-	unset build_fetch_git_var
-	unset build_fetch_git_dir
-	unset build_fetch_git_uri
-	unset build_fetch_git_tag
-}
-
-build_fetch_svn()
-{
-	build_fetch_svn_uri="$(build_fetch_uri "${1}")"
-	build_fetch_svn_uri="${build_fetch_svn_uri%%\?*}"
-	build_fetch_svn_proto=svn
-	for arg in $(build_fetch_args "${1}"); do
-		case "${arg}" in
-		(archive=*) build_fetch_svn_var="${arg##*=}";;
-		(proto=*) build_fetch_svn_proto="${arg##*=}";;
-		esac
-	done
-	if test -z "${build_fetch_svn_var}"; then
-		die "do not know how to store source from '${1}'"
-	fi
-
-	build_fetch_svn_dir="${build_fetch_svn_var%%.t*}"
-	build_fetch_svn_tmp="$(mktemp -d "${BUILDER_TMPDIR}/${build_fetch_svn_dir}.XXXXXX")"
-	cd "${build_fetch_svn_tmp}"
-	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_svn_tmp}"
-
-	if ! svn checkout "${build_fetch_svn_proto}${build_fetch_svn_uri#svn}" "${build_fetch_svn_dir}"; then
-		die "failed to checkout svn source at '${build_fetch_svn_uri}'"
-	fi
-
-	cd "${build_fetch_svn_tmp}"
-	tar caf "${build_fetch_svn_var}" "${build_fetch_svn_dir}"
-
-	if test ! -d "${BUILDER_SRCDIR}"; then
-		mkdir -p "${BUILDER_SRCDIR}"
-	fi
-
-	mv "${build_fetch_svn_var}" "${BUILDER_SRCDIR}/${build_fetch_svn_var}"
-
-	if [ -d "${build_fetch_svn_tmp}" ]; then
-		rm -rf "${build_fetch_svn_tmp}"
-	fi
-
-	unset build_fetch_svn_tmp
-	unset build_fetch_svn_var
-	unset build_fetch_svn_proto
-	unset build_fetch_svn_dir
-	unset build_fetch_svn_uri
-}
-
-build_fetch_http()
-{
-	build_fetch_http_file="$(build_fetch_name "${1}")"
-
-	if [ ! -d "${BUILDER_SRCDIR}" ]; then
-		mkdir -p "${BUILDER_SRCDIR}"
-	fi
-	if [ ! -f "${BUILDER_SRCDIR}/${build_fetch_http_file}" ]; then
-		build_fetch_http_tmp="$(mktemp "${BUILDER_TMPDIR}/${build_fetch_http_file}.XXXXXX")"
-		if command -v "wget" > /dev/null 2>&1; then
-			wget --quiet -O "${build_fetch_http_tmp}" "${1}" || return 1
-		fi
-
-		if ! mv "${build_fetch_http_tmp}" "${BUILDER_SRCDIR}/${build_fetch_http_file}"; then
-			exit 1
-		fi
-		unset build_fetch_http_tmp
-	fi
-
-	unset build_fetch_http_file
-}
-
-
 # Look for requests for help "anywhere" in the command line
 for arg; do
 	case "${arg}" in
@@ -244,6 +88,10 @@ done
 FETCH_ACTION="fetch"
 while [ "$#" -gt "0" ]; do
 	case "${1}" in
+	(-A|-args|--args)
+		FETCH_ACTION="args"
+		shift
+		;;
 	(-N|-name|--name)
 		FETCH_ACTION="name"
 		shift
@@ -252,14 +100,20 @@ while [ "$#" -gt "0" ]; do
 		FETCH_ACTION="var"
 		shift
 		;;
+	(-U|-uri|--uri)
+		FETCH_ACTION="uri"
+		shift
+		;;
 	(-*)	die "unknown fetch action '${1}'";;
 	(*)	break;;
 	esac
 done
 
 case "${FETCH_ACTION}" in
+(args)	build_fetch_args "${1}"; exit $?;;
 (name)	build_fetch_name "${1}"; exit $?;;
 (var)	build_fetch_var "${1}"; exit $?;;
+(uri)	build_fetch_uri "${1}"; exit $?;;
 (fetch)	break;;
 (*)	die "unknown fetch action '${FETCH_ACTION}'";;
 esac
@@ -271,28 +125,24 @@ FETCH_LOG="${BUILDER_TMPDIR}/fetch/$(build_fetch_name "${1}").log"
 rm -f "${FETCH_LOG}"
 touch "${FETCH_LOG}"
 
+trap build_fetch_clean 0
 build_fetch()
 {
-	echo "fetch: ${1}"
+	echo "trying: fetch ${1}"
+	build_fetch_proto="${1%%:*}"
 
-	# FIXME this stuff needs a lot of work
-	case "${1}" in
-	(git://*)	build_fetch_git "${1}" >> "${FETCH_LOG}";;
-	(svn://*)	build_fetch_svn "${1}" >> "${FETCH_LOG}";;
-	(http://*)	build_fetch_http "${1}" >> "${FETCH_LOG}";;
-	(https://*)	build_fetch_http "${1}" >> "${FETCH_LOG}";;
-	(ftp://*)	build_fetch_http "${1}" >> "${FETCH_LOG}";;
-	# Everything else is death
-	(*)		die "do not know how to handle '${1}'"
-	esac
+	if ! test -x "${BUILDER_LIBDIR}/build-fetch-${build_fetch_proto}"; then
+		die "do not know how to handle '${build_fetch_proto}'"
+	fi
+	"build-fetch-${build_fetch_proto}" "${1}"
+	unset build_fetch_proto
 }
 
-trap build_fetch_clean 0
+build_fetch_file="$(build_fetch_name "${1}")"
 for mirror in ${MIRRORS}; do
-	build_fetch "${mirror}/$(build_fetch_name "${1}")" && exit
-	echo "unavailable: ${mirror}/$(build_fetch_name "${1}")"
+	build_fetch "${mirror}/${build_fetch_file}" && exit
 done
-
 build_fetch "${1}"
+unset build_fetch_file
 
 # vim: filetype=sh

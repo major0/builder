@@ -1,0 +1,36 @@
+#!/usr/bin/env build
+
+build_fetch_http_cleanup()
+{
+	test -z "${BUILD_FETCH_HTTP_TMP}" || rm -f "${BUILD_FETCH_HTTP_TMP}"
+}
+
+build_fetch_wget() { wget --quiet -O "${2}" "${1}"; }
+
+build_fetch_http()
+{
+	set -- "${1}" "`build-make-fetch --name "${1}"`"
+
+	test -d "${BUILDER_SRCDIR}" || mkdir -p "${BUILDER_SRCDIR}"
+	test -f "${BUILDER_SRCDIR}/${2}" && return
+
+	BUILD_FETCH_HTTP_TMP="`mktemp "${BUILDER_TMPDIR}/${2}.XXXXXX"`"
+	BUILDER_CLEANUP="${BUILDER_CLEANUP} build_fetch_http_cleanup"
+
+	build_fetch_cmd "${1}" "${BUILD_FETCH_HTTP_TMP}" && \
+		mv "${BUILD_FETCH_HTTP_TMP}" "${BUILDER_SRCDIR}/${2}"
+}
+
+build_fetch_cmd() { die "no command available to fetch '${1}'"; }
+for cmd in wget; do
+	command -v "${cmd}" > /dev/null 2>&1 || continue
+	eval "build_fetch_cmd() { build_fetch_${cmd} \"\$@\"; }"
+	break
+done
+unset cmd
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	build_fetch_http "${1}"
+fi
+
+# vim: filetype=sh
