@@ -198,6 +198,11 @@ export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR
 export BUILDER_ATFDIR BUILDER_LIBDIR BUILDER_TOPDIR
 export BUILDER_TMPDIR
 
+# The default SYSROOT .. Much of the toolchain already obeys SYSROOT .. we
+# aren't setting a policy so much as obeying one.
+SYSROOT="${SYSROOT:-${BUILDER_TOPDIR}/sysroot}"
+export SYSROOT
+
 # We save the pre-config PATH as BUILDER_PATH to be used by downstream tools.
 # FIXME detect prefixing BUILDER_LIBDIR onto PATH multiple times?
 BUILDER_PATH="${BUILDER_LIBDIR}:${PATH}"
