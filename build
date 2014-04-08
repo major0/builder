@@ -124,15 +124,6 @@ BUILDER_DEBUG=0
 while [ "$#" -gt "0" ]; do
 	case "$1" in
 	(-v|-version|--version)	version; exit 0;;
-	(-t|-target|--target)
-		shift 1
-		if [ "$#" -eq "0" ]; then
-			echo "error: no target specified" >&2
-			exit 1
-		fi
-		BUILDER_TARGET="${1}"
-		shift 1
-		;;
 	(-d|-debug|--debug)
 		BUILDER_DEBUG=1
 		set -x
