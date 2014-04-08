@@ -116,7 +116,11 @@ if [ -f "${1}" ]; then
 	esac
 fi
 
-DEBUG="0"
+##
+# We are being called as 'build [options] <command>'.  Setup the environment
+# for execution of a sub-command.
+
+BUILDER_DEBUG=0
 while [ "$#" -gt "0" ]; do
 	case "$1" in
 	(-v|-version|--version)	version; exit 0;;
@@ -131,7 +135,6 @@ while [ "$#" -gt "0" ]; do
 		;;
 	(-d|-debug|--debug)
 		BUILDER_DEBUG=1
-		export BUILDER_DEBUG
 		set -x
 		;;
 	(-h|-help|--help)
@@ -149,6 +152,7 @@ while [ "$#" -gt "0" ]; do
 	shift 1
 	echo "$@"
 done
+export BUILDER_DEBUG
 
 ##
 # Done with arguments, time for setting up the enviroment for the build
