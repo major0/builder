@@ -159,51 +159,39 @@ fi
 # set the builtin defaults based on TOPDIR.  We export TOPDIR as BUILDER_TOPDIR
 # to avoid stepping on the potential usage of TOPDIR within package Makefiles
 BUILDER_TOPDIR="${TOPDIR}"
+BUILDER_CFGDIR="${TOPDIR}/.builder"
 BUILDER_PKGDIR="${TOPDIR}/packages"
 BUILDER_SRCDIR="${TOPDIR}/sources"
 BUILDER_ATFDIR="${TOPDIR}/artifacts"
 BUILDER_LIBDIR="${TOPDIR}/scripts/libexec"
+BUILDER_TMPDIR="${TOPDIR}/tmp"
 
 export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR
 export BUILDER_ATFDIR BUILDER_LIBDIR BUILDER_TOPDIR
-
-BUILDER_TMPDIR="${TOPDIR}/tmp"
-if ! test -d "${BUILDER_TMPDIR}"; then
-	mkdir -p "${BUILDER_TMPDIR}"
-fi
 export BUILDER_TMPDIR
 
 # We save the pre-config PATH as BUILDER_PATH to be used by downstream tools.
+# FIXME detect prefixing BUILDER_LIBDIR onto PATH multiple times?
 BUILDER_PATH="${BUILDER_LIBDIR}:${PATH}"
 PATH="${BUILDER_PATH}"
 export BUILDER_PATH PATH
 
-# The default SYSROOT
-SYSROOT="${TOPDIR}/sysroot"
-
-##
-# This may be a little bit confusing to most.  The core issue here is the
-# ability to deal with compiled-in defaults, user-defined defaults, environment
-# settings, and target settings.
-CFGDIR="${TOPDIR}/.builder"
-
-# grab the default and target settings if available, let the target settings
-# override the user-defined defaults.
-if [ -f "${CFGDIR}/config" ]; then
-	. "${CFGDIR}/config"
-fi
-TARGET="${TARGET:-config}"
-if [ "${TARGET}" != "config" ]; then
-	if [ ! -f "${CFGDIR}/${TARGET}" ]; then
-		echo "error: invalid target '${TARGET}'" >&2
-		exit 1
+# FIXME The original idea here is to allow a "default" environment, that has a "default"
+# override... Basically we set some default variables, and then load the
+# default config, and THEN let the target config override anything set. This
+# is really confusing, and totally obsolted by an 'include' option in the configs.
+test -f "${BUILDER_CFGDIR}/config" && . "${BUILDER_CFGDIR}/config"
+BUILDER_CONFIG="${BUILDER_CONFIG:-config}"
+if [ "${BUILDER_CONFIG}" != 'config' ]; then
+	if [ ! -f "${BUILDER_CFGDIR}/${BUILDER_CONFIG}" ]; then
+		die "invalid config '${BUILDER_CONFIG}'"
 	fi
-	. "${CFGDIR}/${TARGET}"
+	. "${BUILDER_CFGDIR}/${BUILDER_CONFIG}"
 fi
-export TARGET
-export SYSROOT
+export BUILDER_CONFIG
 
-# Set MAKE_OPTS if not already set
+# FIXME MAKE_OPTS should default to #CPUS + 1, until we can detect #CPUS, we
+# just set it to 2 for uni-processor systems.
 MAKE_OPTS="${MAKE_OPTS:--j2}"
 export MAKE_OPTS
 
@@ -215,6 +203,9 @@ export PROJECT ARCHIVE_FORMAT
 # If unspecified go ahead and ask gcc
 CBUILD="${CBUILD:-$(build-dumpmachine)}"
 export CBUILD
+
+ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-tar.bz2}"
+export  ARCHIVE_FORMAT
 
 # FIXME this stuff needs to be detected in a more reliable fashion
 ARCH="${ARCH:-$(uname -m)}"
