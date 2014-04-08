@@ -141,7 +141,6 @@ while [ "$#" -gt "0" ]; do
 		;;
 	esac
 	shift 1
-	echo "$@"
 done
 export BUILDER_DEBUG
 
