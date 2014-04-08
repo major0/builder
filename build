@@ -46,6 +46,31 @@ cleanup()
 	test -p "${BUILDER_PIPE}" && rm -f "${BUILDER_PIPE}"
 }
 
+## import
+# import a builder library.
+# During import a library can check 'BUILDER_CALL_STACK' to see if it equals
+# '__main__'.  If it does, then the library is being executed directly.
+# Further more, builder-libraries can do load-time tests in order to perform
+# various one-time optimizations.
+#
+# Note: this is borrowed from 'shlib' almost verbatim w/ the only change being
+# the variable names.
+import()
+{
+	set -- "${1}" "`echo "${1}" | tr '-' '_'`"
+	test -f "${BUILDER_LIBDIR}/${1}" || die "library does not exist '${1}'"
+	eval "test -z '\${BUILDER_IMPORT_${2}}'" || return
+	BUILDER_CALL_STASH="${BUILDER_CALL_STACK}"
+	BUILDER_CALL_STACK="${BUILDER_CALL_STACK} ${1}" . "${BUILDER_CALL_LIBDIR}/${1}"
+	eval "BUILDER_IMPORT_${2}='${BUILDER_LIBDIR}/${1}"
+	if [ -z "${BUILDER_IMPORTED}" ]; then
+		BUILDER_IMPORTED="${1}"
+	else
+		BUILDER_IMPORTED="${BUILDER_IMPORTED} ${1}"
+	fi
+	BUILDER_CALL_STACK="${BUILDER_CALL_STASH}"
+}
+
 ## load_rules <package>
 # load the Buildrules of a package into the current program space
 load_rules()
@@ -154,6 +179,10 @@ if [ -z "${TOPDIR}" ]; then
 	echo "error: current path not in a build-tree" >&2
 	exit 1
 fi
+
+# We are being executed as 'build <cmd>'
+BUILDER_CALL_STACK='__main__'
+export BUILDER_CALL_STACK
 
 # set the builtin defaults based on TOPDIR.  We export TOPDIR as BUILDER_TOPDIR
 # to avoid stepping on the potential usage of TOPDIR within package Makefiles
