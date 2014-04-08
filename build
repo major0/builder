@@ -219,14 +219,7 @@ ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-tar.bz2}"
 export PROJECT ARCHIVE_FORMAT
 
 # If unspecified go ahead and ask gcc
-# FIXME there has to be a more robust way to figure this out.
-if [ -z "${CBUILD}" ]; then
-	if command -v gcc > /dev/null 2>&1; then
-		CBUILD="$(gcc -dumpmachine)"
-	else
-		CBUILD="$(build-dumpmachine)"
-	fi
-fi
+CBUILD="${CBUILD:-$(build-dumpmachine)}"
 export CBUILD
 
 # FIXME this stuff needs to be detected in a more reliable fashion

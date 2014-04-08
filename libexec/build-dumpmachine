@@ -129,6 +129,10 @@ case $CC_FOR_BUILD,$HOST_CC,$CC in
  ,*,*)  CC_FOR_BUILD=$HOST_CC ;;
 esac ; set_cc_for_build= ;'
 
+if gcc -dumpmachine > /dev/null 2>&1; then
+	exec gcc -dumpmachine
+fi
+
 # This is needed to find uname on a Pyramid OSx when run in the BSD universe.
 # (ghazi@noc.rutgers.edu 1994-08-24)
 if (test -f /.attbin/uname) >/dev/null 2>&1 ; then
