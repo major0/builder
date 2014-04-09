@@ -1,0 +1,26 @@
+#!/usr/bin/env build
+
+exit_cleanup()
+{
+	ret=$?
+
+	if [ ${ret} -ne 0 ]; then
+		echo "error: test failed for ${CATEGORY}/${NAME}" >&2
+		echo "logfile: '${PKG_LOGFILE}'" >&2
+		exit ${ret}
+	fi
+	exit 0
+}
+trap exit_cleanup EXIT
+
+pkg_test() { echo "test: no test defined"; }
+
+echo "testing: ${1}"
+load_rules "${1}"
+mkenv "test"
+PKG_LOGFILE="${L}/test"
+
+cd "${W}"
+pkg_test >> "${PKG_LOGFILE}" 2>&1
+
+# vim: filetype=sh
