@@ -29,8 +29,9 @@ build_fetch()
 	if ! test -x "${BUILDER_LIBDIR}/build-fetch-${build_fetch_proto}"; then
 		die "do not know how to handle '${build_fetch_proto}'"
 	fi
-	"build-fetch-${build_fetch_proto}" "${1}"
+	set -- "build-fetch-${build_fetch_proto}" "${1}"
 	unset build_fetch_proto
+	"$@"
 }
 
 build_fetch_file="$(build-url --archive "${1}")"
