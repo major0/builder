@@ -42,8 +42,9 @@ mkenv()
 # imported commands.
 cleanup()
 {
-	test -f "${BUILDER_MAKEFILE}" && rm -f "${BUILDER_MAKEFILE}"
 	test -p "${BUILDER_PIPE}" && rm -f "${BUILDER_PIPE}"
+	test "${BUILDER_DEBUG:-0}" -ne '0' && return
+	test -f "${BUILDER_MAKEFILE}" && rm -f "${BUILDER_MAKEFILE}"
 }
 
 ## import
