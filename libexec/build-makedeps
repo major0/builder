@@ -67,7 +67,7 @@ for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
 		(file://*|/*)	package_sources="${package_sources} ${url##file://}";;
 
 		# Assume anything else with :// in the name is remote
-		(*://*)		pkg_src="$(build-make-fetch --name "${url}")"
+		(*://*)		pkg_src="$(build-url --archive "${url}")"
 				if test "$?" -ne "0"; then
 					exit 1
 				fi
@@ -146,10 +146,10 @@ EOF
 
 		# Assume anything else with :// in the name is remote
 		(*://*)
-			var="$(build-make-fetch --var "${url}")"
+			var="fetch_$(build-url --archive "${url}"|sed 's/[+.-]/_/g')"
 			if test -z "$(eval echo -n "\$${var}")"; then
 				eval "${var}='${url}'"
-				echo "${BUILDER_SRCDIR}/$(build-make-fetch --name "${url}"):"
+				echo "${BUILDER_SRCDIR}/$(build-url --archive "${url}"):"
 				echo "	@build-make-fetch \"${url}\""
 			fi
 			;;

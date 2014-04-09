@@ -1,20 +1,6 @@
 #!/usr/bin/env build
 
-usage()
-{
-cat<<END_OF_USAGE
-usage: build-fetch [options] <url>
-
-options:
-
-  -A, --args		Return the argument portion of the URL
-  -N, --name		Return the filename portion of the URL
-  -V, --var		Return the variable portion of the URL
-  -U, --uri		Return the URI portion of the URL
-  -h, --help		Display this help
-
-END_OF_USAGE
-}
+build_fetch_usage() { echo 'usage: build-fetch [options] <url>'; }
 
 build_fetch_clean()
 {
@@ -27,101 +13,10 @@ build_fetch_clean()
 	done
 }
 
-build_fetch_uri() { printf '%s' "${1%%\?*}"; }
-
-build_fetch_args()
-{
-	set -- $(echo "${1##$(build_fetch_uri "${1}")\?}"|sed -e 's/&/ /')
-	printf '%s' "${*}"
-}
-
-build_fetch_name()
-{
-	build_fetch_name_var="$(build_fetch_uri "${1}")"
-	build_fetch_name_var="${build_fetch_name_var##*/}"
-	build_fetch_name_var="${build_fetch_name_var%%\?*}"
-
-	build_fetch_name_complete="0"
-	case "${build_fetch_name_var}" in
-	(*.tar.*)		build_fetch_name_complete=1;;
-	(*.t[bgx]z)		build_fetch_name_complete=1;;
-	(*.tbz2)		build_fetch_name_complete=1;;
-	(*.tz)			build_fetch_name_complete=1;;
-	(*.zip|*.jar)		build_fetch_name_complete=1;;
-	esac
-
-	if [ "${build_fetch_name_complete}" -eq "1" ]; then
-		printf '%s' "${build_fetch_name_var}"
-		unset build_fetch_name_var
-		return
-	fi
-
-	# The filename to archive has to be supplied on the SOURCES_URI, else
-	# we can't do anything about packages which share common sources.
-	build_fetch_name_var=
-	for arg in $(build_fetch_args "${1}"); do
-		case "${arg}" in
-		(archive=*) build_fetch_name_var="${arg##*=}";;
-		esac
-	done
-
-	if [ -z "${build_fetch_name_var}" ]; then
-		die "do not know how to store source from '${1}'"
-	fi
-
-	printf '%s' "${build_fetch_name_var}"
-	unset build_fetch_name_var
-}
-
-build_fetch_var()
-{
-	printf 'fetch_%s' "$(build_fetch_name "${1}" | sed -e 's/[+.-]/_/g')"
-}
-
-# Look for requests for help "anywhere" in the command line
-for arg; do
-	case "${arg}" in
-	(-h|-help|--help) usage; exit 0;;
-	esac
-done
-
-FETCH_ACTION="fetch"
-while [ "$#" -gt "0" ]; do
-	case "${1}" in
-	(-A|-args|--args)
-		FETCH_ACTION="args"
-		shift
-		;;
-	(-N|-name|--name)
-		FETCH_ACTION="name"
-		shift
-		;;
-	(-V|-var|--var|--variable)
-		FETCH_ACTION="var"
-		shift
-		;;
-	(-U|-uri|--uri)
-		FETCH_ACTION="uri"
-		shift
-		;;
-	(-*)	die "unknown fetch action '${1}'";;
-	(*)	break;;
-	esac
-done
-
-case "${FETCH_ACTION}" in
-(args)	build_fetch_args "${1}"; exit $?;;
-(name)	build_fetch_name "${1}"; exit $?;;
-(var)	build_fetch_var "${1}"; exit $?;;
-(uri)	build_fetch_uri "${1}"; exit $?;;
-(fetch)	break;;
-(*)	die "unknown fetch action '${FETCH_ACTION}'";;
-esac
-
 if ! test -d "${BUILDER_TMPDIR}/fetch"; then
 	mkdir -p "${BUILDER_TMPDIR}/fetch"
 fi
-FETCH_LOG="${BUILDER_TMPDIR}/fetch/$(build_fetch_name "${1}").log"
+FETCH_LOG="${BUILDER_TMPDIR}/fetch/$(build-url --archive "${1}").log"
 rm -f "${FETCH_LOG}"
 touch "${FETCH_LOG}"
 
@@ -129,7 +24,7 @@ trap build_fetch_clean 0
 build_fetch()
 {
 	echo "trying: fetch ${1}"
-	build_fetch_proto="${1%%:*}"
+	build_fetch_proto="$(build-url --proto "${1}")"
 
 	if ! test -x "${BUILDER_LIBDIR}/build-fetch-${build_fetch_proto}"; then
 		die "do not know how to handle '${build_fetch_proto}'"
@@ -138,7 +33,7 @@ build_fetch()
 	unset build_fetch_proto
 }
 
-build_fetch_file="$(build_fetch_name "${1}")"
+build_fetch_file="$(build-url --archive "${1}")"
 for mirror in ${MIRRORS}; do
 	build_fetch "${mirror}/${build_fetch_file}" && exit
 done

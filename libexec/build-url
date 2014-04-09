@@ -1,0 +1,124 @@
+#!/usr/bin/env build
+
+build_url_usage()
+{
+cat<<END_OF_USAGE
+usage: build-url [options] <url>
+
+options:
+  -a, --archive		Return the archive portion of the URL.
+  -A, --arg [key]	Return the specified URL argument, or all arguments if
+			not specified.
+  -B, --base		Return the proto://host/path portion of the URL
+  -P, --proto		Return the protocol portion of the URL
+  -h, --help		Display this help
+
+END_OF_USAGE
+}
+
+build_url_proto() { printf '%s' "${1%%://*}"; }
+build_url_base() { printf '%s' "${1%%\?*}"; }
+
+build_url_arg()
+{
+	build_url_arg_match=
+	if test "$#" -gt '1'; then
+		build_url_arg_match="${1}"
+		shift
+	fi
+	set -- $(echo "${1##$(build_url_base "${1}")\?}"|sed -e 's/&/ /')
+
+	if test -z "${build_url_arg_match}"; then
+		printf '%s' "${*}"
+		return
+	fi
+
+	for arg; do
+		case "${arg}" in
+		(${build_url_arg_match}=*)
+			echo "${arg#*=}"; return;;
+		esac
+	done
+}
+
+build_url_archive()
+{
+	build_url_name_var="$(build_url_base "${1}")"
+	build_url_name_var="${build_url_name_var##*/}"
+	build_url_name_var="${build_url_name_var%%\?*}"
+
+	build_url_name_complete="0"
+	case "${build_url_name_var}" in
+	(*.tar.*)		build_url_name_complete=1;;
+	(*.t[bgx]z)		build_url_name_complete=1;;
+	(*.tbz2)		build_url_name_complete=1;;
+	(*.tz)			build_url_name_complete=1;;
+	(*.zip|*.jar)		build_url_name_complete=1;;
+	(*.rpm)			build_url_name_complete=1;;
+	esac
+
+	if [ "${build_url_name_complete}" -eq "1" ]; then
+		printf '%s' "${build_url_name_var}"
+		unset build_url_name_var
+		return
+	fi
+
+	# The filename to archive has to be supplied on the SOURCES_URI, else
+	# we can't do anything about packages which share common sources.
+	build_url_name_var=
+	for arg in $(build_url_arg "${1}"); do
+		case "${arg}" in
+		(archive=*) build_url_name_var="${arg##*=}";;
+		esac
+	done
+
+	if [ -z "${build_url_name_var}" ]; then
+		die "do not know how to store source from '${1}'"
+	fi
+
+	printf '%s' "${build_url_name_var}"
+	unset build_url_name_var
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+# Look for requests for help "anywhere" in the command line
+	for arg; do
+		case "${arg}" in
+		(-h|-help|--help) build_url_usage; exit 0;;
+		esac
+	done
+
+	URL_ACTION="url"
+	while [ "$#" -gt "0" ]; do
+		case "${1}" in
+		(-a|-archive|--archive)
+			URL_ACTION="archive"
+			shift
+			;;
+		(-A|-arg|--arg)
+			URL_ACTION="arg"
+			shift
+			;;
+		(-B|-base|--base)
+			URL_ACTION="base"
+			shift
+			;;
+		(-P|-proto|--proto|-protocol|--protocol)
+			URL_ACTION="proto"
+			shift
+			;;
+		(-*)	die "unknown url action '${1}'";;
+		(*)	break;;
+		esac
+	done
+
+	case "${URL_ACTION}" in
+	(arg)		build_url_arg "${@}"; exit $?;;
+	(archive)	build_url_archive "${@}"; exit $?;;
+	(base)		build_url_base "${@}"; exit $?;;
+	(proto)		build_url_proto "${@}"; exit $?;;
+	(*)	die "unknown url action '${URL_ACTION}'";;
+	esac
+fi
+
+# vim: filetype=sh

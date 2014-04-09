@@ -9,7 +9,7 @@ build_fetch_wget() { wget --quiet -O "${2}" "${1}"; }
 
 build_fetch_ftp()
 {
-	set -- "${1}" "`build-make-fetch --name "${1}"`"
+	set -- "${1}" "`build-url --archive "${1}"`"
 
 	test -d "${BUILDER_SRCDIR}" || mkdir -p "${BUILDER_SRCDIR}"
 	test -f "${BUILDER_SRCDIR}/${2}" && return

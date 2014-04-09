@@ -2,12 +2,12 @@
 
 build_fetch_git()
 {
-	build_fetch_git_uri="$(build-make-fetch --uri "${1}")"
+	build_fetch_git_uri="$(build-url --base "${1}")"
 	build_fetch_git_uri="${build_fetch_git_uri#git://}"
 	build_fetch_git_uri="${build_fetch_git_uri%%\?*}"
 	build_fetch_git_tag=
 	build_fetch_git_var=
-	for arg in $(build-make-fetch --args "${1}"); do
+	for arg in $(build-url --arg "${1}"); do
 		case "${arg}" in
 		(archive=*) build_fetch_git_var="${arg##*=}";;
 		(*)		 build_fetch_git_tag="${arg}";;

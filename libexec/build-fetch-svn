@@ -2,10 +2,10 @@
 
 build_fetch_svn()
 {
-	build_fetch_svn_uri="$(build-make-fetch --uri "${1}")"
+	build_fetch_svn_uri="$(build-url --base "${1}")"
 	build_fetch_svn_uri="${build_fetch_svn_uri%%\?*}"
 	build_fetch_svn_proto=svn
-	for arg in $(build-make-fetch --args "${1}"); do
+	for arg in $(build-url --arg "${1}"); do
 		case "${arg}" in
 		(archive=*) build_fetch_svn_var="${arg##*=}";;
 		(proto=*) build_fetch_svn_proto="${arg##*=}";;
