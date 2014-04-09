@@ -40,6 +40,7 @@ build_commands()
 	IFS=':'
 	set -- ${PATH}
 	for dir; do
+		test -d "${dir}" || continue
 		for cmd in $(cd "${dir}" && echo build-*); do
 			test -e "${dir}/${cmd}" || continue
 			BUILDER_COMMANDS="${BUILDER_COMMANDS} ${cmd#build-}"
