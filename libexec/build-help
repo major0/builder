@@ -14,7 +14,8 @@ build_commands()
 	echo "available builder commands from '${BUILDER_LIBDIR}':"
 	for cmd in $(cd "${BUILDER_LIBDIR}" && echo build-*); do
 		test -e "${BUILDER_LIBDIR}/${cmd}" || continue
-		BUILDER_COMMANDS="${BUILDER_COMMANDS} ${cmd#build-}"
+		cmd="${cmd#build-}"
+		BUILDER_COMMANDS="${BUILDER_COMMANDS} ${cmd#make-}"
 		length="$(echo "${cmd#build-}"|wc -c)"
 
 		if test "${length}" -gt "${BUILDER_CMD_WIDTH}"; then
