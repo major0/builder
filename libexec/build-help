@@ -96,9 +96,15 @@ Commands
 		them into the sources/ top-level directory.  This is done
 		automatically for all commands which depend on it.
 
-  package	Prep, compile and construct a binary "artifact" file for a
-		given package.  This command is performed automatically for all
-		commands which depend on it.
+  prep		Prepare a package for compilation.  This command is performed
+		automatically for all commands which depend on it.
+
+  compile	Compile a package.  This command is performed automatically for
+		all commands which depend on it.
+
+  package	Construct a binary "artifact" file from a compiled package.
+		This command is performed automatically for all commands which
+		depend on it.
 
   install	Install a binary artifact into the sysroot. This action is
 		performed automatically for any packages which the current
