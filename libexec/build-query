@@ -327,6 +327,7 @@ export S
 
 case "${QUERY_ACTION}" in
 (srcdir)	echo "${S}";;
+(src_uri)	echo "${SOURCE_URI}";;
 (bdepends)	echo "$(echo ${BDEPENDS})";;
 (bdeps_all)	recurse_bdeps ${BDEPENDS};;
 (rdepends)	echo "$(echo ${RDEPENDS})";;
