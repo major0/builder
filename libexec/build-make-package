@@ -21,7 +21,7 @@ build_make_archive_cleanup()
 }
 
 build_make_archive()
-{
+{(
 	trap build_make_archive_cleanup 0
 
 	echo "archiving: ${1}"
@@ -61,7 +61,7 @@ build_make_archive()
 	# see if anything
 	# is stil going.
 	wait
-}
+)}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'package' '[all|[<category>/]<package|all>]' "$@"

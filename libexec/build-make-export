@@ -1,7 +1,7 @@
 #!/usr/bin/env build
 
 build_make_export()
-{
+{(
 	load_rules "${1}"
 
 	if test -z "${LICENSE}"; then
@@ -93,7 +93,7 @@ build_make_export()
 	mkdir -p "${BUILDER_TOPDIR}/exports"
 # FIXME figure out the arch properly
 	mv "${S}/RPMS/${CHOST%%-*}/${NAME}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm" "${BUILDER_TOPDIR}/exports/" || die "Failed to move rpm"
-}
+)}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'export' '[all|[<category>/]<package|all>]' "$@"

@@ -15,7 +15,7 @@ build_make_test_cleanup()
 pkg_test() { echo "test: no test defined"; }
 
 build_make_test()
-{
+{(
 	trap build_make_test_cleanup 0
 	echo "testing: ${1}"
 	load_rules "${1}"
@@ -24,7 +24,7 @@ build_make_test()
 
 	cd "${W}"
 	pkg_test >> "${PKG_LOGFILE}" 2>&1
-}
+ )}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'test' '[all|[<category>/]<package|all>]' "$@"

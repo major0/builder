@@ -13,7 +13,7 @@ build_make_prep_cleanup()
 }
 
 build_make_prep()
-{
+{(
 	trap build_make_prep_cleanup 0
 
 	build_prep() { return; }
@@ -86,7 +86,7 @@ build_make_prep()
 			fi >> "${PKG_LOGFILE}" 2>&1
 		done
 	fi
-}
+)}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'prep' '[all|[<category>/]<package|all>]' "$@"

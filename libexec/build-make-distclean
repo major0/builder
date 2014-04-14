@@ -1,9 +1,9 @@
 #!/usr/bin/env build
 
 build_make_distclean()
-{
+{(
 	echo "distcleaning: ${1}"
-	eval $(build-query --environ "${1}")
+	load_rules "${1}"
 
 	if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
 		rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" &
@@ -24,7 +24,7 @@ build_make_distclean()
 	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
 		rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 	fi
-}
+)}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'distclean' '[all|[<category>/]<package|all>]' "$@"

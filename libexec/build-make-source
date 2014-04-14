@@ -12,7 +12,7 @@ build_make_source_cleanup()
 }
 
 build_make_source()
-{
+{(
 	build-make-prep "${1}"
 
 	trap build_make_source_cleanup 0
@@ -28,7 +28,7 @@ build_make_source()
 	PKG_LOGFILE="${L}/source.log"
 
 	mv "${S}" "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" >> "${PKG_LOGFILE}" 2>&1
-}
+ )}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'source' '[all|[<category>/]<package|all>]' "$@"

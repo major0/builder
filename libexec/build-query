@@ -41,40 +41,6 @@ package options:
 END_OF_HELP
 }
 
-parse_pkg_name()
-{
-	# Only allow a single '/' in the name
-	if [ "1${1##*/}" != "1${1#*/}" ]; then
-		return 1
-	fi
-
-	if [ "2${1#*/}" != "2${1}" ]; then
-		printf '%s' "${1}"
-	else
-		printf '%s' "${PROJECT}/${1}"
-	fi
-}
-
-parse_name()
-{
-	if ! parse_pkg_name "${1}" > /dev/null 2>&1; then
-		return "$?"
-	fi
-
-	set -- "$(parse_pkg_name "${1}")"
-	printf '%s' "${1#*/}"
-}
-
-parse_category()
-{
-	if ! parse_pkg_name "${1}" > /dev/null 2>&1; then
-		return "$?"
-	fi
-
-	set -- "$(parse_pkg_name "${1}")"
-	printf '%s' "${1%/*}"
-}
-
 RECURSE_RDEPENDS='false'
 recurse_bdeps()
 {
@@ -134,7 +100,7 @@ while [ "$#" -gt "0" ]; do
 	(-D|-destdir|--destdir)
 		QUERY_ACTION="destdir";;
 	(--exists)
-		QUERY_ACTION="exists";;
+		test -e "${BUILD_PKGDIR}/${1}/Buildrules" && exit 0 || exit 1;;
 	(-e|-envdir|--envdir)
 		QUERY_ACTION="envdir";;
 	(-E|-environ|--environ)
@@ -242,39 +208,15 @@ if test "$#" -eq "0"; then
 	die "no package specified"
 fi
 
-# We can aquire this data before we bother loading anything
-NAME="$(parse_name "${1}")"
-CATEGORY="$(parse_category "${1}")"
-PKG_NAME="${CATEGORY}/${NAME}"
+load_rules "${1}"
 
-if [ ! -d "${BUILDER_PKGDIR}/${PKG_NAME}" ]; then
-	die "no such package '${1}'"
+# Allow the developer to hijack the SRC_URI with a checked out repository
+# FIXME this causes problems for various dep targets
+if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
+	SOURCE_URI="file://${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
 fi
 
-RULESFILE="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/Buildrules"
-if [ ! -f "${RULESFILE}" ]; then
-	die "no rulesfile for package '${1}'"
-fi
-
-export NAME CATEGORY PKG_NAME RULESFILE
-
-shift
-
-# These variables are used by the Buildrules and fundmentally make up the
-# majority of their environ data
-F="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/files"
-W="${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/work"
-L="${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/log"
-E="${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/env"
-T="${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/tmp"
-D="${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/install"
-
-export F W L E T D
-
-# These requests can be answered without sourcing the Buildrules, everything
-# else needs the Rulesfile sourced in
 case "${QUERY_ACTION}" in
-(exists)	exit 0;; # Simply break out
 (name)		echo "${NAME}";exit 0;;
 (category)	echo "${CATEGORY}";exit 0;;
 (pkgname)	echo "${CATEGORY}/${NAME}";exit 0;;
@@ -286,46 +228,8 @@ case "${QUERY_ACTION}" in
 (envdir)	echo "${E}";exit 0;;
 (tmpdir)	echo "${T}";exit 0;;
 (destdir)	echo "${D}";exit 0;;
-esac
 
-# These variables are only set within a Rulesfile and thus need to be cleared
-# before sourcing it in.
-VERSION=
-RELEASE=
-DESCRIPTION=
-LICENSE=
-SOURCE_URI=
-PATCHES=
-RDEPENDS=
-BDEPENDS=
 
-if [ -f "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules" ]; then
-	. "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"
-fi
-. "${RULESFILE}"
-
-# Allow the developer to hijack the SRC_URI with a checked out repository
-if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
-	SOURCE_URI="file://${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
-fi
-
-if test -z "${RELEASE}"; then
-	RELEASE="${VERSION#*-}"
-	if ! test -z "${RELEASE}" && test "${RELEASE}" != "${VERSION}"; then
-		VERSION="${VERSION%-${RELEASE}}"
-	else
-		RELEASE='0'
-	fi
-fi
-
-export VERSION RELEASE DESCRIPTION LICENSE SOURCE_URI PATCHES BDEPENDS RDEPENDS
-
-# Ironically, the source working directory can't be assigned until we source in
-# the Buildrules due to the dependancy on the VERSION
-S="${W}/${NAME}-${VERSION}"
-export S
-
-case "${QUERY_ACTION}" in
 (srcdir)	echo "${S}";;
 (src_uri)	echo "${SOURCE_URI}";;
 (bdepends)	echo "$(echo ${BDEPENDS})";;

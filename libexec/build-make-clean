@@ -1,8 +1,8 @@
 #!/usr/bin/env build
 
 build_make_clean()
-{
-	eval $(build-query --environ "${1}")
+{(
+	load_rules "${1}"
 
 	if [ -z "${NOCLEAN}" ]; then
 		echo "cleaning: ${1}"
@@ -26,7 +26,7 @@ build_make_clean()
 			rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 		fi
 	fi
-}
+)}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'clean' '[all|[<category>/]<package|all>]' "$@"

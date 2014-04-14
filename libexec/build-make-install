@@ -1,9 +1,9 @@
 #!/usr/bin/env build
 
 build_make_install()
-{
+{(
 	echo "installing: ${1}"
-	eval $(build-query --environ "${1}")
+	load_rules "${1}"
 
 	if [ ! -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
 		die "archive does not exist for package '${NAME}'"
@@ -29,7 +29,7 @@ build_make_install()
 
 	${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" | tar x
 	touch "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
-}
+)}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'install' '[all|[<category>/]<package|all>]' "$@"
