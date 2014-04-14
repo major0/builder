@@ -92,23 +92,7 @@ build_fetch_git()
 }
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
-	build_fetch_git_usage() { printf 'usage: build-fetch-git <url>\n'; }
-
-	for arg; do
-		case "${arg}" in
-		(-h|-help|--help)	build_fetch_git_usage;;
-		esac
-	done
-
-	while test "$#" -gt '0'; do
-		case "$1" in
-		(-*)	error "unknown argument '${1}'"
-			echo "try 'build fetch-git --help'" >&2
-			exit 1;;
-		(--)	shift 1; break;;
-		(*)	break;;
-		esac
-	done
+	usage 'fetch-git' '<url>'
 
 	build_fetch_git "${1}"
 fi

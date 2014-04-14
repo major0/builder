@@ -1,8 +1,6 @@
 #!/usr/bin/env build
 
-ARCHIVE_TMP1=
-ARCHIVE_TMP2=
-exit_cleanup()
+build_make_prep_cleanup()
 {
 	ret=$?
 
@@ -11,85 +9,88 @@ exit_cleanup()
 		echo "logfile: '${PKG_LOGFILE}'" >&2
 		exit ${ret}
 	fi
-	if [ -f "${ARCHIVE_TMP1}" ]; then
-		rm -f "${ARCHIVE_TMP1}"
-	fi
-	if [ -f "${ARCHIVE_TMP2}" ]; then
-		rm -f "${ARCHIVE_TMP2}"
-	fi
 	exit 0
 }
-trap exit_cleanup EXIT
 
-build_prep() { return; }
-pkg_prep() { build_prep; }
+build_make_prep()
+{
+	trap build_prep_cleanup EXIT
 
-load_rules "${1}"
+	build_prep() { return; }
+	pkg_prep() { build_prep; }
 
-## Cleanup the build build environment
-for dir in "${S}" "${D}"; do
-	if [ ! -d "${dir}" ]; then
-		continue
-	fi
-	mv "${dir}" "${dir}.old"
-	find "${dir}.old" -delete &
-done
-unset dir
+	load_rules "${1}"
 
-mkenv "prep"
-PKG_LOGFILE="${L}/prep.log"
-
-SOURCE_DIR="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
-if [ -d "${SOURCE_DIR}" -o -L "${SOURCE_DIR}" ]; then
-	echo "prepping ${1} from source: '${SOURCE_DIR}"
-	if [ "$(command -v rsync)" ]; then
-		if ! rsync -rav --delete "${SOURCE_DIR}/" "${S}"; then
-			die "failed to sync source to '${S}'"
+	# Cleanup the build build environment
+	for dir in "${S}" "${D}"; do
+		if [ ! -d "${dir}" ]; then
+			continue
 		fi
-	else
-		if ! cp -vadpR "${SOURCE_DIR}" "${S}"; then
-			die "failed to copy source to '${S}'"
-		fi
-	fi >> "${PKG_LOGFILE}" 2>&1
-else
-	# FIXME this stuff needs a lot of work
-	for url in ${SOURCE_URI}; do
-		file="$(build-url --archive "${url}")"
-		if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
-			die "source does not exist '${file}'"
-		fi
-		echo "prepping ${1} from source: '${BUILDER_SRCDIR}/${file}"
-
-		case "${file}" in
-		(*.tar.Z|*.tar.z|*.tz)
-			tar xZf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-		(*.tar.gz|*.tgz)
-			tar xzf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-		(*.tar.bz2|*.tbz2)
-			tar xjf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-		(*.tar.xz|*.txz)
-			tar xJf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-		(*.tar.*)
-			tar xaf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-		(*.zip)
-			unzip "${BUILDER_SRCDIR}/${file}" -d "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-		(*.jar)
-			cp "${BUILDER_SRCDIR}/${file}" "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-		esac
+		mv "${dir}" "${dir}.old"
+		find "${dir}.old" -delete &
 	done
-fi
+	unset dir
 
-cd "${W}"
-pkg_prep >> "${PKG_LOGFILE}" 2>&1
+	mkenv "prep"
+	PKG_LOGFILE="${L}/prep.log"
 
-# FIXME wrap up the patch command with something more functional
-if [ ! -z "${PATCHES}" ]; then
-	for patch in ${PATCHES}; do
-		echo "${NAME}: applying patch '${patch}'" | tee -a "${PKG_LOGFILE}"
-		if ! patch -l -t -d "${S}" -p1 < "${F}/${NAME}-${VERSION}-${patch}.patch"; then
-			exit 1
+	SOURCE_DIR="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
+	if [ -d "${SOURCE_DIR}" -o -L "${SOURCE_DIR}" ]; then
+		echo "prepping ${1} from source: '${SOURCE_DIR}"
+		if [ "$(command -v rsync)" ]; then
+			if ! rsync -rav --delete "${SOURCE_DIR}/" "${S}"; then
+				die "failed to sync source to '${S}'"
+			fi
+		else
+			if ! cp -vadpR "${SOURCE_DIR}" "${S}"; then
+				die "failed to copy source to '${S}'"
+			fi
 		fi >> "${PKG_LOGFILE}" 2>&1
-	done
+	else
+		# FIXME this stuff needs a lot of work
+		for url in ${SOURCE_URI}; do
+			file="$(build-url --archive "${url}")"
+			if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
+				die "source does not exist '${file}'"
+			fi
+			echo "prepping ${1} from source: '${BUILDER_SRCDIR}/${file}"
+
+			case "${file}" in
+			(*.tar.Z|*.tar.z|*.tz)
+				tar xZf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+			(*.tar.gz|*.tgz)
+				tar xzf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+			(*.tar.bz2|*.tbz2)
+				tar xjf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+			(*.tar.xz|*.txz)
+				tar xJf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+			(*.tar.*)
+				tar xaf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+			(*.zip)
+				unzip "${BUILDER_SRCDIR}/${file}" -d "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+			(*.jar)
+				cp "${BUILDER_SRCDIR}/${file}" "${W}" >> "${PKG_LOGFILE}" 2>&1;;
+			esac
+		done
+	fi
+
+	cd "${W}"
+	pkg_prep >> "${PKG_LOGFILE}" 2>&1
+
+	# FIXME wrap up the patch command with something more functional
+	if [ ! -z "${PATCHES}" ]; then
+		for patch in ${PATCHES}; do
+			echo "${NAME}: applying patch '${patch}'" | tee -a "${PKG_LOGFILE}"
+			if ! patch -l -t -d "${S}" -p1 < "${F}/${NAME}-${VERSION}-${patch}.patch"; then
+				exit 1
+			fi >> "${PKG_LOGFILE}" 2>&1
+		done
+	fi
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'prep' '[all|[<category>/]<package|all>]' "$@"
+	build_make_prep "${@}"
 fi
 
 # vim: filetype=sh

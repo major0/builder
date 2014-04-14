@@ -1,8 +1,8 @@
 #!/usr/bin/env build
 
-ARCHIVE_TMP1=
-ARCHIVE_TMP2=
-exit_cleanup()
+BUILD_MAKE_ARCHIVE_TMP1=
+BUILD_MAKE_ARCHIVE_TMP2=
+build_make_archive_cleanup()
 {
 	ret=$?
 
@@ -11,51 +11,62 @@ exit_cleanup()
 		echo "logfile: '${PKG_LOGFILE}'" >&2
 		exit ${ret}
 	fi
-	if [ -f "${ARCHIVE_TMP1}" ]; then
-		rm -f "${ARCHIVE_TMP1}"
+	if [ -f "${BUILD_MAKE_ARCHIVE_TMP1}" ]; then
+		rm -f "${BUILD_MAKE_ARCHIVE_TMP1}"
 	fi
-	if [ -f "${ARCHIVE_TMP2}" ]; then
-		rm -f "${ARCHIVE_TMP2}"
+	if [ -f "${BUILD_MAKE_ARCHIVE_TMP2}" ]; then
+		rm -f "${BUILD_MAKE_ARCHIVE_TMP2}"
 	fi
 	exit 0
 }
-trap exit_cleanup EXIT
 
-echo "archiving: ${1}"
-load_rules "${1}"
-mkenv "archive"
-PKG_LOGFILE="${L}/archive.log"
+build_make_archive()
+{
+	trap build_make_archive_cleanup EXIT
 
-ARCHIVE_TMP1="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}-${RELEASE}.XXXXXXXX")"
-ARCHIVE_TMP2="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}-${RELEASE}.XXXXXXXX")"
+	echo "archiving: ${1}"
+	load_rules "${1}"
+	mkenv "archive"
+	PKG_LOGFILE="${L}/archive.log"
 
-[ -f "${ARCHIVE_TMP1}" ] || die "failed to create temporary archive for package '${NAME}'"
-[ -f "${ARCHIVE_TMP2}" ] || die "failed to create temporary archive for package '${NAME}'"
+	BUILD_MAKE_ARCHIVE_TMP1="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}-${RELEASE}.XXXXXXXX")"
+	[ -f "${BUILD_MAKE_ARCHIVE_TMP1}" ] || die "failed to create temporary archive for package '${NAME}'"
 
-case "${ARCHIVE_FORMAT}" in
-(tbz2|tar.bz2)	ARCHIVE_COMPRESSOR="bzip2 -cv";;
-(tgz|tar.gz)	ARCHIVE_COMPRESSOR="gzip -cv";;
-(*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
-esac
+	BUILD_MAKE_ARCHIVE_TMP2="$(mktemp "${BUILDER_TMPDIR}/${NAME}-${VERSION}-${RELEASE}.XXXXXXXX")"
+	[ -f "${BUILD_MAKE_ARCHIVE_TMP2}" ] || die "failed to create temporary archive for package '${NAME}'"
 
-if [ ! -d "${BUILDER_ATFDIR}/${CATEGORY}" ]; then
-	mkdir -p "${BUILDER_ATFDIR}/${CATEGORY}"
+	case "${ARCHIVE_FORMAT}" in
+	(tbz2|tar.bz2)	ARCHIVE_COMPRESSOR="bzip2 -cv";;
+	(tgz|tar.gz)	ARCHIVE_COMPRESSOR="gzip -cv";;
+	(*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
+	esac
+
+	if [ ! -d "${BUILDER_ATFDIR}/${CATEGORY}" ]; then
+		mkdir -p "${BUILDER_ATFDIR}/${CATEGORY}"
+	fi
+
+	cd "${D}"
+	tar -cvf "${BUILD_MAKE_ARCHIVE_TMP1}" .  > "${PKG_LOGFILE}" 2>&1
+	${ARCHIVE_COMPRESSOR} "${BUILD_MAKE_ARCHIVE_TMP1}" > "${BUILD_MAKE_ARCHIVE_TMP2}" 2>> "${PKG_LOGFILE}"
+	if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
+		rm -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}"
+	fi
+	mv -v "${BUILD_MAKE_ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" >> "${PKG_LOGFILE}" 2>&1
+	cd "${W}"
+	find "${D}" -delete &
+
+	##
+	# Technically everything should be done but we did throw a number of
+	# things into the background during execution, so go ahead and wait to
+	# see if anything
+	# is stil going.
+	wait
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'package' '[all|[<category>/]<package|all>]' "$@"
+	build_make_archive "${@}"
 fi
 
-cd "${D}"
-tar -cvf "${ARCHIVE_TMP1}" .  > "${PKG_LOGFILE}" 2>&1
-${ARCHIVE_COMPRESSOR} "${ARCHIVE_TMP1}" > "${ARCHIVE_TMP2}" 2>> "${PKG_LOGFILE}"
-if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
-	rm -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}"
-fi
-mv -v "${ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" >> "${PKG_LOGFILE}" 2>&1
-cd "${W}"
-find "${D}" -delete &
-
-##
-# Technically everything should be done but we did throw a number of things
-# into the background during execution, so go ahead and wait to see if anything
-# is stil going.
-wait
 
 # vim: filetype=sh

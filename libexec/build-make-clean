@@ -1,28 +1,36 @@
 #!/usr/bin/env build
 
-eval $(build-query --environ "${1}")
+build_make_clean()
+{
+	eval $(build-query --environ "${1}")
 
-if [ -z "${NOCLEAN}" ]; then
-	echo "cleaning: ${1}"
-	if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
-		rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" &
-	fi
-	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-		cd "${SYSROOT}"
-		# FIXME: we are failing to handle file collisions produce in
-		# this file.
-		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f &
-	fi
-	if [ -d "${W}" ]; then
-		rm -rf "${W}" &
-	fi
+	if [ -z "${NOCLEAN}" ]; then
+		echo "cleaning: ${1}"
+		if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
+			rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" &
+		fi
+		if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+			cd "${SYSROOT}"
+			# FIXME: we are failing to handle file collisions produce in
+			# this file.
+			cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f &
+		fi
+		if [ -d "${W}" ]; then
+			rm -rf "${W}" &
+		fi
 
-	wait
+		wait
 
-	# Clobber our package marker.
-	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-		rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
+		# Clobber our package marker.
+		if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+			rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
+		fi
 	fi
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'clean' '[all|[<category>/]<package|all>]' "$@"
+	build_make_clean "${@}"
 fi
 
 # vim: filetype=sh

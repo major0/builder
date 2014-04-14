@@ -1,26 +1,35 @@
 #!/usr/bin/env build
 
-echo "distcleaning: ${1}"
-eval $(build-query --environ "${1}")
+build_make_distclean()
+{
+	echo "distcleaning: ${1}"
+	eval $(build-query --environ "${1}")
 
-if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
-	rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" &
-fi
-if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-	cd "${SYSROOT}"
-	# FIXME: we are failing to handle file collisions produce in
-	# this file.
-	cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f &
-fi
-if [ -d "${W}" ]; then
-	rm -rf "${W}" &
+	if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
+		rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" &
+	fi
+	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+		cd "${SYSROOT}"
+		# FIXME: we are failing to handle file collisions produce in
+		# this file.
+		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f &
+	fi
+	if [ -d "${W}" ]; then
+		rm -rf "${W}" &
+	fi
+
+	wait
+
+	# Clobber our package marker.
+	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+		rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
+	fi
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'distclean' '[all|[<category>/]<package|all>]' "$@"
+	build_make_distclean "${@}"
 fi
 
-wait
-
-# Clobber our package marker.
-if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-	rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
-fi
 
 # vim: filetype=sh

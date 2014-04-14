@@ -1,8 +1,6 @@
 #!/usr/bin/env build
 
-build_fetch_usage() { echo 'usage: build-fetch [options] <url>'; }
-
-build_fetch_clean()
+build_make_fetch_cleanup()
 {
 	for arg in ${BUILD_FETCH_CLEAN}; do
 		if [ -d "${arg}" ]; then
@@ -13,16 +11,10 @@ build_fetch_clean()
 	done
 }
 
-if ! test -d "${BUILDER_TMPDIR}/fetch"; then
-	mkdir -p "${BUILDER_TMPDIR}/fetch"
-fi
-FETCH_LOG="${BUILDER_TMPDIR}/fetch/$(build-url --archive "${1}").log"
-rm -f "${FETCH_LOG}"
-touch "${FETCH_LOG}"
-
-trap build_fetch_clean 0
-build_fetch()
+build_make_fetch()
 {
+	trap build_make_fetch_cleanup 0
+
 	echo "trying: fetch ${1}"
 	build_fetch_proto="$(build-url --proto "${1}")"
 
@@ -34,11 +26,25 @@ build_fetch()
 	"$@"
 }
 
-build_fetch_file="$(build-url --archive "${1}")"
-for mirror in ${MIRRORS}; do
-	build_fetch "${mirror}/${build_fetch_file}" && exit
-done
-build_fetch "${1}"
-unset build_fetch_file
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'fetch' '[all|[<category>/]<package|all>]' "$@"
+
+	build_fetch_file="$(build-url --archive "${1}")"
+	for mirror in ${MIRRORS}; do
+		build_fetch "${mirror}/${build_fetch_file}" && exit
+	done
+	build_make_fetch "${1}"
+	unset build_fetch_file
+
+	if ! test -d "${BUILDER_TMPDIR}/fetch"; then
+		mkdir -p "${BUILDER_TMPDIR}/fetch"
+	fi
+	FETCH_LOG="${BUILDER_TMPDIR}/fetch/$(build-url --archive "${1}").log"
+	rm -f "${FETCH_LOG}"
+	touch "${FETCH_LOG}"
+
+	build_make_fetch "${@}"
+fi
+
 
 # vim: filetype=sh

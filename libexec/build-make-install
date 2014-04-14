@@ -1,53 +1,41 @@
 #!/usr/bin/env build
 
-usage()
+build_make_install()
 {
-cat<<END_OF_USAGE
-END_OF_USAGE
+	echo "installing: ${1}"
+	eval $(build-query --environ "${1}")
+
+	if [ ! -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
+		die "archive does not exist for package '${NAME}'"
+	fi
+	if [ ! -d "${SYSROOT}" ]; then
+		mkdir -p "${SYSROOT}" || die "failed to create system root @ '${SYSROOT}'"
+	fi
+
+	# FIXME the builder configs should decide the binpkg archive format.
+	case "${ARCHIVE_FORMAT}" in
+	(tbz2|tar.bz2)	ARCHIVE_DECOMPRESSOR="bzip2 -dc";;
+	(tgz|tar.gz)	ARCHIVE_DECOMPRESSOR="gzip -dc";;
+	(*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
+	esac
+
+	cd "${SYSROOT}"
+
+	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+		echo "${NAME}: removing previous version"
+		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f
+		rm "var/db/binpkgs/${CATEGORY}/${NAME}"
+	fi
+
+	${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" | tar x
+	touch "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 }
 
-for arg; do
-	case "${arg}" in
-	(-h|-help|--help) usage; exit 0;;
-	esac
-done
-
-while test "$#" -gt '0'; do
-	case "$1" in
-	(-*)	error "unknown argument '${1}'"
-		echo "try 'build help install'" >&2
-		exit 1;;
-	(--)	shift; break;;
-	(*)	break;;
-	esac
-done
-
-echo "installing: ${1}"
-eval $(build-query --environ "${1}")
-
-if [ ! -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
-	die "archive does not exist for package '${NAME}'"
-fi
-if [ ! -d "${SYSROOT}" ]; then
-	mkdir -p "${SYSROOT}" || die "failed to create system root @ '${SYSROOT}'"
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'install' '[all|[<category>/]<package|all>]' "$@"
+	build_make_install "${@}"
 fi
 
-# FIXME the builder configs should decide the binpkg archive format.
-case "${ARCHIVE_FORMAT}" in
-(tbz2|tar.bz2)	ARCHIVE_DECOMPRESSOR="bzip2 -dc";;
-(tgz|tar.gz)	ARCHIVE_DECOMPRESSOR="gzip -dc";;
-(*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
-esac
 
-cd "${SYSROOT}"
-
-if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-	echo "${NAME}: removing previous version"
-	cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f
-	rm "var/db/binpkgs/${CATEGORY}/${NAME}"
-fi
-
-${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" | tar x
-touch "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
 
 # vim: filetype=sh

@@ -1,6 +1,6 @@
 #!/usr/bin/env build
 
-usage()
+build_query_usage()
 {
 cat<<END_OF_HELP
 usage: build-query [options] <arg>
@@ -115,7 +115,7 @@ recurse_rdeps()
 # Look for cries for --help in the cmdline
 for arg; do
 	case "${arg}" in
-	(-h|-help|--help) usage; exit 0;;
+	(-h|-help|--help) build_query_usage; exit 0;;
 	esac
 done
 

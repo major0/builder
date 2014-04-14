@@ -45,24 +45,7 @@ build_fetch_svn()
 }
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
-	build_fetch_svn_usage() { printf 'usage: build-fetch-svn <url>\n'; }
-
-	for arg; do
-		case "${arg}" in
-		(-h|-help|--help)	build_fetch_svn_usage;;
-		esac
-	done
-
-	while test "$#" -gt '0'; do
-		case "$1" in
-		(-*)	error "unknown argument '${1}'"
-			echo "try 'build fetch-svn --help'" >&2
-			exit 1;;
-		(--)	shift 1; break;;
-		(*)	break;;
-		esac
-	done
-
+	usage 'fetch-svn' '<url>'
 	build_fetch_svn "${1}"
 fi
 

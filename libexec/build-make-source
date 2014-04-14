@@ -1,15 +1,6 @@
 #!/usr/bin/env build
 
-echo "building source: ${1}"
-
-pkg_prep()
-{
-		return
-}
-
-load_rules "${1}"
-
-build_source_clean()
+build_make_source_cleanup()
 {
 	for arg in ${BUILD_SOURCE_CLEAN}; do
 		if [ -d "${arg}" ]; then
@@ -20,126 +11,26 @@ build_source_clean()
 	done
 }
 
-build_source_uri()
+build_make_source()
 {
-	printf '%s' "${1%%\?*}"
-}
+	trap build_make_source_cleanup 0
+	echo "building source: ${1}"
 
-build_source_args()
-{
-	set -- $(echo "${1##$(build_source_uri "${1}")\?}"|sed -e 's/&/ /')
-	printf '%s' "${*}"
-}
+	load_rules "${1}"
 
-
-build_source()
-{
-	file="$(build-url --archive "${1}")"
-	if [ ! -f "${BUILDER_SRCDIR}/${file}" ]; then
-		die "source does not exist '${file}'"
+	if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
+		die "source already exists for '${CATEGORY}/${NAME}'"
 	fi
 
-	case "${file}" in
-	(*.tar.Z|*.tar.z|*.tz)
-		tar xZvf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-	(*.tar.gz|*.tgz)
-		tar xzvf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-	(*.tar.bz2|*.tbz2)
-		tar xjvf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-	(*.tar.xz|*.txz)
-		tar xJvf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-	(*.tar.*)
-		tar xavf "${BUILDER_SRCDIR}/${file}" -C "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-	(*.zip)
-		unzip "${BUILDER_SRCDIR}/${file}" -d "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-	(*.jar)
-		cp "${BUILDER_SRCDIR}/${file}" "${W}" >> "${PKG_LOGFILE}" 2>&1;;
-	esac
+	mkenv "source"
+	PKG_LOGFILE="${L}/source.log"
+
+	mv "${S}" "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" >> "${PKG_LOGFILE}" 2>&1
 }
 
-build_source_git()
-{
-	build_source_git_uri="$(build_source_uri "${1}")"
-	build_source_git_uri="${build_source_git_uri#git://}"
-	build_source_git_uri="${build_source_git_uri%%\?*}"
-	build_source_git_tag=
-	for arg in $(build_source_args "${1}"); do
-		case "${arg}" in
-		(archive=*);;	# Ignore the archive directive
-		(*)		 build_source_git_tag="${arg}";;
-		esac
-	done
-
-	build_source_git_tmp="$(mktemp -d "${BUILDER_TMPDIR}/builder_git.XXXXXX")"
-	BUILD_SOURCE_CLEAN="${BUILD_SOURCE_CLEAN} ${build_source_git_tmp}"
-	trap build_source_clean EXIT
-
-	case "${build_source_git_uri}" in
-	(*:[0-9]*)	build_source_git_uri="git://${build_source_git_uri}";;
-	(*:*);;		# Git over ssh?
-	(*)		build_source_git_uri="git://${build_source_git_uri}";;
-	esac
-	if ! git clone "${build_source_git_uri}" "${build_source_git_tmp}"; then
-		die "failed to clone git source at '${build_source_git_uri}'"
-	fi
-	if [ "${build_source_git_tag}" != "${build_source_git_uri}" ]; then
-		if ! cd "${build_source_git_tmp}"; then
-			die "failed to change working directory to '${build_source_git_tmp}'"
-		fi
-
-		if [ ! -z "${build_source_git_tag}" ]; then
-			if ! git checkout "${build_source_git_tag}"; then
-				die "failed to checkout git branch/tag '${build_source_git_tag}'"
-			fi
-		fi
-	fi
-
-	mv "${build_source_git_tmp}" "${S}"
-
-	unset build_source_git_tmp
-	unset build_source_git_uri
-	unset build_source_git_tag
-}
-
-## Cleanup the build build environment
-for dir in "${S}" "${D}"; do
-	if [ ! -d "${dir}" ]; then
-		continue
-	fi
-	mv "${dir}" "${dir}.old"
-	find "${dir}.old" -delete &
-done
-unset dir
-
-mkenv "prep"
-PKG_LOGFILE="${L}/source.log"
-
-if [ -d "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" ]; then
-	die "source already exists for '${CATEGORY}/${NAME}'"
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'source' '[all|[<category>/]<package|all>]' "$@"
+	build_make_source "${@}"
 fi
-
-# FIXME this stuff needs a lot of work
-for url in ${SOURCE_URI}; do
-	case "${url}" in
-	(git://*) build_source_git "${url}";;
-	(*)	build_source "${url}";;
-	esac
-done
-
-cd "${W}" && pkg_prep >> "${PKG_LOGFILE}" 2>&1
-
-# FIXME wrap up the patch command with something more functional
-if [ ! -z "${PATCHES}" ]; then
-	for patch in ${PATCHES}; do
-		echo "${NAME}: applying patch '${patch}'" | tee -a "${PKG_LOGFILE}"
-		if ! patch -l -t -d "${S}" -p1 < "${F}/${NAME}-${VERSION}-${patch}.patch"; then
-			exit 1
-		fi >> "${PKG_LOGFILE}" 2>&1
-	done
-fi
-
-mv "${S}" "${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source" >> "${PKG_LOGFILE}" 2>&1
-
-wait
 
 # vim: filetype=sh

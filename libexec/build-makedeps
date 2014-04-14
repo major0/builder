@@ -48,6 +48,7 @@ for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
 	fi
 
 	package_make="$(echo "${package}"|tr '/-' '__')"
+	package_source="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
 	package_prep="${W}/.prepped"
 	package_compile="${W}/.compiled"
 	package_archive="${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}"
@@ -117,8 +118,6 @@ cat <<EOF
 ${package_make}: ${package_archive}
 ${package_make}_makedeps:
 ${package_make}_fetch: ${package_sources}
-${package_make}_source: ${package_sources}
-	@build-make-source "${CATEGORY}/${NAME}"
 ${package_make}_clean:
 	@build-make-clean "${CATEGORY}/${NAME}"
 ${package_make}_distclean:
@@ -137,6 +136,9 @@ ${package_archive}: ${package_compile}
 ${package_make}_install: ${package_install}
 ${package_install}: ${package_archive} ${package_rdeps}
 	@build-make-install "${CATEGORY}/${NAME}"
+${package_make}_source: ${package_source}
+${package_source}: ${package_prep}
+	@build-make-source "${CATEGORY}/${NAME}"
 ${package_make}_test: ${package_test}
 ${package_test}: ${package_tdeps} ${package_install}
 	@build-make-test "${CATEGORY}/${NAME}"

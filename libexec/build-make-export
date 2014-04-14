@@ -1,94 +1,103 @@
 #!/usr/bin/env build
 
-load_rules "${1}"
+build_make_export()
+{
+	load_rules "${1}"
 
-if test -z "${LICENSE}"; then
-	die "no license set in '${1}'"
-fi
-
-echo "exporting ${1}"
-
-for dir in "${S}" "${D}"; do
-	if ! test -d "${dir}"; then
-		continue
+	if test -z "${LICENSE}"; then
+		die "no license set in '${1}'"
 	fi
-	mv "${dir}" "${dir}.old"
-	find "${dir}.old" -delete &
-done
-unset dir
 
-mkenv 'export'
-EXPORT_LOGFILE="${L}/export.log"
+	echo "exporting ${1}"
 
-mkdir -p "${T}/${NAME}-${VERSION}.builder"
-cp "${RULESFILE}" "${T}/${NAME}-${VERSION}.builder/"
-
-if ! test -z "${PATCHES}"; then
-	for patch in ${PATCHES}; do
-		cp "${F}/${NAME}-${VERSION}-${patch}.patch" "${T}/${NAME}-${VERSION}.builder/"
+	for dir in "${S}" "${D}"; do
+		if ! test -d "${dir}"; then
+			continue
+		fi
+		mv "${dir}" "${dir}.old"
+		find "${dir}.old" -delete &
 	done
-fi
+	unset dir
 
-cd "${T}"
+	mkenv 'export'
+	EXPORT_LOGFILE="${L}/export.log"
 
-for url in ${SOURCE_URI}; do
-	file="$(build-url --archive "${url}")"
-	test -f "${BUILDER_SRCDIR}/${file}" || die "source does not exist '${file}'"
-	cp "${BUILDER_SRCDIR}/${file}" "${NAME}-${VERSION}.builder/"
-done
+	mkdir -p "${T}/${NAME}-${VERSION}.builder"
+	cp "${RULESFILE}" "${T}/${NAME}-${VERSION}.builder/"
 
-for dir in SOURCES SPECS RPMS BUILD; do
-	mkdir -p "${S}/${dir}" &
-done
-wait
+	if ! test -z "${PATCHES}"; then
+		for patch in ${PATCHES}; do
+			cp "${F}/${NAME}-${VERSION}-${patch}.patch" "${T}/${NAME}-${VERSION}.builder/"
+		done
+	fi
 
-if ! tar czf "${S}/SOURCES/${NAME}-${VERSION}.builder.tar.gz" "${NAME}-${VERSION}.builder"; then
-	die "Failed to create base rpm tarball."
-fi
+	cd "${T}"
 
-cat <<EOF > "${S}/SPECS/${NAME}-${VERSION}.spec"
-Summary: ${DESCRIPTION}
-Name: ${NAME}
-Version: ${VERSION}
-Release: ${RELEASE}
-License: ${LICENSE}
-Group: ${CATEGORY}
-Source: ${NAME}-${VERSION}.builder.tar.gz
-Buildroot: ${SYSROOT}
-%description
-${DESCRIPTION}
+	for url in ${SOURCE_URI}; do
+		file="$(build-url --archive "${url}")"
+		test -f "${BUILDER_SRCDIR}/${file}" || die "source does not exist '${file}'"
+		cp "${BUILDER_SRCDIR}/${file}" "${NAME}-${VERSION}.builder/"
+	done
 
-%prep
-%setup -c
+	for dir in SOURCES SPECS RPMS BUILD; do
+		mkdir -p "${S}/${dir}" &
+	done
+	wait
 
-%build
+	if ! tar czf "${S}/SOURCES/${NAME}-${VERSION}.builder.tar.gz" "${NAME}-${VERSION}.builder"; then
+		die "Failed to create base rpm tarball."
+	fi
 
-%install
+	cat <<-EOF > "${S}/SPECS/${NAME}-${VERSION}.spec"
+	Summary: ${DESCRIPTION}
+	Name: ${NAME}
+	Version: ${VERSION}
+	Release: ${RELEASE}
+	License: ${LICENSE}
+	Group: ${CATEGORY}
+	Source: ${NAME}-${VERSION}.builder.tar.gz
+	Buildroot: ${SYSROOT}
+	%description
+	${DESCRIPTION}
 
-%clean
+	%prep
+	%setup -c
 
-%files
-EOF
-# FIXME In the long run we should see about producing -dbg and -dev rpms
-tr '\000' '\n' < "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" \
-	| sed -e 's,^,/,' \
-	| grep -v '^/usr/include' | grep -v 'pkgconfig' | grep -v '^*\.a$' \
-	>> "${S}/SPECS/${NAME}-${VERSION}.spec"
+	%build
 
-#mkdir -p "${D}"
-#cd "${D}"
-#tar xaf "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+	%install
 
-rpmbuild --quiet --target "${CHOST}"	\
-	--define "_topdir ${S}"		\
-	--define "buildroot ${SYSROOT}"	\
-	--define '_unpackaged_files_terminate_build 0'	\
-	--define '_missing_doc_files_terminate_build 0'	\
-	--define "arch ${CHOST%%-*}"	\
-	-bb "${S}/SPECS/${NAME}-${VERSION}.spec" > "${L}/export.log" 2>&1 || die "Failed to integrate rpm spec file"
+	%clean
 
-mkdir -p "${BUILDER_TOPDIR}/exports"
+	%files
+	EOF
+
+	# FIXME In the long run we should see about producing -dbg and -dev rpms
+	tr '\000' '\n' < "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" \
+		| sed -e 's,^,/,' \
+		| grep -v '^/usr/include' | grep -v 'pkgconfig' | grep -v '^*\.a$' \
+		>> "${S}/SPECS/${NAME}-${VERSION}.spec"
+
+	#mkdir -p "${D}"
+	#cd "${D}"
+	#tar xaf "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}.${ARCHIVE_FORMAT}"
+
+	rpmbuild --quiet --target "${CHOST}"	\
+		--define "_topdir ${S}"		\
+		--define "buildroot ${SYSROOT}"	\
+		--define '_unpackaged_files_terminate_build 0'	\
+		--define '_missing_doc_files_terminate_build 0'	\
+		--define "arch ${CHOST%%-*}"	\
+		-bb "${S}/SPECS/${NAME}-${VERSION}.spec" > "${L}/export.log" 2>&1 || die "Failed to integrate rpm spec file"
+
+	mkdir -p "${BUILDER_TOPDIR}/exports"
 # FIXME figure out the arch properly
-mv "${S}/RPMS/${CHOST%%-*}/${NAME}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm" "${BUILDER_TOPDIR}/exports/" || die "Failed to move rpm"
+	mv "${S}/RPMS/${CHOST%%-*}/${NAME}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm" "${BUILDER_TOPDIR}/exports/" || die "Failed to move rpm"
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'export' '[all|[<category>/]<package|all>]' "$@"
+	build_make_export "${@}"
+fi
 
 # vim: filetype=sh

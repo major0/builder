@@ -1,6 +1,6 @@
 #!/usr/bin/env build
 
-exit_cleanup()
+build_test_exit_cleanup()
 {
 	ret=$?
 
@@ -11,16 +11,24 @@ exit_cleanup()
 	fi
 	exit 0
 }
-trap exit_cleanup EXIT
 
 pkg_test() { echo "test: no test defined"; }
 
-echo "testing: ${1}"
-load_rules "${1}"
-mkenv "test"
-PKG_LOGFILE="${L}/test"
+build_make_test()
+{
+	trap exit_cleanup EXIT
+	echo "testing: ${1}"
+	load_rules "${1}"
+	mkenv "test"
+	PKG_LOGFILE="${L}/test"
 
-cd "${W}"
-pkg_test >> "${PKG_LOGFILE}" 2>&1
+	cd "${W}"
+	pkg_test >> "${PKG_LOGFILE}" 2>&1
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'test' '[all|[<category>/]<package|all>]' "$@"
+	build_make_test "${@}"
+fi
 
 # vim: filetype=sh
