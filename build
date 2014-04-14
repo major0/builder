@@ -19,6 +19,34 @@ error() { echo "error: $*" >&2; }
 # display the supplied <message> and exit with an error
 die() { error "$*"; exit 1; }
 
+## simple_usage <cmd> <summary>
+# A simplified usage interface for commands with no option arguments.
+simple_usage()
+{
+	cmd="${1}"
+	summary="${2}"
+	shift 2
+
+	if test "$#" -eq '0'; then
+		error "no arguments to command"
+		echo "try 'build ${cmd} --help'" >&2
+		exit 1
+	fi
+
+	while test "$#" -gt '0'; do
+		case "${1}" in
+		(-h|-help|--help)
+			echo "usage: build ${cmd} ${summary}" 2>&1
+			exit 0;;
+		(--)	shift; break;;
+		(-*)	error "unknown option '${1}'"
+			echo "try 'build ${cmd} --help'" >&2
+			exit 1;;
+		(*)	break;;
+		esac
+	done
+}
+
 ## mkenv
 # prepare the environment structure for the current package
 mkenv()
