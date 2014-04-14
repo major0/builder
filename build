@@ -64,17 +64,6 @@ mkenv()
 	fi
 }
 
-## cleanup
-# deal with temporary junk when we exit
-# FIXME we need a way to universally deal w/ cleanup of junk created by
-# imported commands.
-cleanup()
-{
-	test -p "${BUILDER_PIPE}" && rm -f "${BUILDER_PIPE}"
-	test "${BUILDER_DEBUG:-0}" -ne '0' && return
-	test -f "${BUILDER_MAKEFILE}" && rm -f "${BUILDER_MAKEFILE}"
-}
-
 ## import
 # import a builder library.
 # During import a library can check 'BUILDER_CALL_STACK' to see if it equals

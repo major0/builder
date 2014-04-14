@@ -22,7 +22,7 @@ build_make_archive_cleanup()
 
 build_make_archive()
 {
-	trap build_make_archive_cleanup EXIT
+	trap build_make_archive_cleanup 0
 
 	echo "archiving: ${1}"
 	load_rules "${1}"

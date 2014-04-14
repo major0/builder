@@ -1,6 +1,6 @@
 #!/usr/bin/env build
 
-exit_cleanup()
+build_make_compile_cleanup()
 {
 	ret=$?
 
@@ -11,7 +11,6 @@ exit_cleanup()
 	fi
 	exit 0
 }
-trap exit_cleanup EXIT
 
 build_compile()
 {
@@ -30,6 +29,7 @@ pkg_compile() { build_compile; }
 
 build_make_compile()
 {
+	trap build_make_compile_cleanup 0
 	load_rules "${1}"
 
 	# Declare compilation variables before loading the rules as the package
@@ -96,7 +96,5 @@ if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'compile' '[all|[<category>/]<package|all>]' "$@"
 	build_make_compile "${@}"
 fi
-
-
 
 # vim: filetype=sh

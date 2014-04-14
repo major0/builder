@@ -1,5 +1,16 @@
 #!/usr/bin/env build
 
+## build_make_cleanup
+# deal with temporary junk when we exit
+# FIXME we need a way to universally deal w/ cleanup of junk created by
+# imported commands.
+build_make_cleanup()
+{
+	test -p "${BUILDER_PIPE}" && rm -f "${BUILDER_PIPE}"
+	test "${BUILDER_DEBUG:-0}" -ne '0' && return
+	test -f "${BUILDER_MAKEFILE}" && rm -f "${BUILDER_MAKEFILE}"
+}
+
 build_make()
 {
 	if test "$#" -eq '0'; then
@@ -69,8 +80,9 @@ build_make()
 	# clobbering it.
 	set -- $(for package in "$@"; do echo "${package}" ; done | sort | uniq)
 
+	trap build_make_cleanup 0
+
 	# build the Makefile
-	trap cleanup EXIT
 	test -d "${BUILDER_TMPDIR}" || mkdir -p "${BUILDER_TMPDIR}"
 	BUILDER_MAKEFILE="$(mktemp "${BUILDER_TMPDIR}/builder_makefile.XXXXXXXX")"
 	if [ ! -f "${BUILDER_MAKEFILE}" ]; then
