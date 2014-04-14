@@ -125,10 +125,12 @@ ${package_make}_distclean:
 	@build-make-distclean "${CATEGORY}/${NAME}"
 ${package_make}_prep: ${package_prep}
 ${package_prep}: ${package_sources} ${package_bdeps}
-	@build-make-prep "${CATEGORY}/${NAME}" && date >> "${package_prep}"
+	@build-make-prep "${CATEGORY}/${NAME}"
+	@date >> "${package_prep}"
 ${package_make}_compile: ${package_compile}
 ${package_compile}: ${package_prep}
-	@build-make-compile "${CATEGORY}/${NAME}" && date >> "${package_compile}"
+	@build-make-compile "${CATEGORY}/${NAME}"
+	@date >> "${package_compile}"
 ${package_make}_package: ${package_archive}
 ${package_archive}: ${package_compile}
 	@build-make-package "${CATEGORY}/${NAME}"
