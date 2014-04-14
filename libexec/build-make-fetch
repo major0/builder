@@ -16,6 +16,13 @@ build_make_fetch()
 	trap build_make_fetch_cleanup 0
 
 	echo "trying: fetch ${1}"
+
+	FETCH_LOG="${BUILDER_TMPDIR}/fetch/$(build-url --archive "${1}").log"
+
+	if ! test -d "${BUILDER_TMPDIR}/fetch"; then
+		mkdir -p "${BUILDER_TMPDIR}/fetch"
+	fi
+
 	build_fetch_proto="$(build-url --proto "${1}")"
 
 	if ! test -x "${BUILDER_LIBDIR}/build-fetch-${build_fetch_proto}"; then
@@ -31,17 +38,9 @@ if test "${BUILDER_CALL_STACK}" = '__main__'; then
 
 	build_fetch_file="$(build-url --archive "${1}")"
 	for mirror in ${MIRRORS}; do
-		build_fetch "${mirror}/${build_fetch_file}" && exit
+		build_make_fetch "${mirror}/${build_fetch_file}" && exit
 	done
-	build_make_fetch "${1}"
 	unset build_fetch_file
-
-	if ! test -d "${BUILDER_TMPDIR}/fetch"; then
-		mkdir -p "${BUILDER_TMPDIR}/fetch"
-	fi
-	FETCH_LOG="${BUILDER_TMPDIR}/fetch/$(build-url --archive "${1}").log"
-	rm -f "${FETCH_LOG}"
-	touch "${FETCH_LOG}"
 
 	build_make_fetch "${@}"
 fi
