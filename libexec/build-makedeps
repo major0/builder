@@ -10,6 +10,7 @@ all_archive: all_all_archive
 all_install: all_all_install
 all_test: all_all_test
 all_export: all_all_export
+all_source: all_all_source
 all_makedeps:
 all_source:
 
@@ -137,7 +138,7 @@ ${package_make}_install: ${package_install}
 ${package_install}: ${package_archive} ${package_rdeps}
 	@build-make-install "${CATEGORY}/${NAME}"
 ${package_make}_source: ${package_source}
-${package_source}: ${package_prep}
+${package_source}: ${package_sources}
 	@build-make-source "${CATEGORY}/${NAME}"
 ${package_make}_test: ${package_test}
 ${package_test}: ${package_tdeps} ${package_install}
@@ -185,6 +186,7 @@ EOF
 	eval "${category}_INSTALL=\"\${${category}_INSTALL} ${package_install}\""
 	eval "${category}_TEST=\"\${${category}_TEST} ${package_test}\""
 	eval "${category}_EXPORT=\"\${${category}_EXPORT} ${package_export}\""
+	eval "${category}_SOURCE=\"\${${category}_SOURCE} ${package_source}\""
 	eval "${category}_CLEAN=\"\${${category}_CLEAN} ${package_make}_clean\""
 	eval "${category}_DISTCLEAN=\"\${${category}_DISTCLEAN} ${package_make}_distclean\""
 
@@ -203,6 +205,7 @@ ${CATEGORY}_all_archive: $(eval echo "\${${CATEGORY}_PACKAGES}")
 ${CATEGORY}_all_install: $(eval echo "\${${CATEGORY}_INSTALL}")
 ${CATEGORY}_all_test: $(eval echo "\${${CATEGORY}_TEST}")
 ${CATEGORY}_all_export: $(eval echo "\${${CATEGORY}_EXPORT}")
+${CATEGORY}_all_source: $(eval echo "\${${CATEGORY}_SOURCE}")
 ${CATEGORY}_all_clean: $(eval echo "\${${CATEGORY}_CLEAN}")
 ${CATEGORY}_all_distclean: $(eval echo "\${${CATEGORY}_DISTCLEAN}")
 all_all: ${CATEGORY}_all
@@ -211,6 +214,7 @@ all_all_archive: ${CATEGORY}_all_archive
 all_all_install: ${CATEGORY}_all_install
 all_all_test: ${CATEGORY}_all_test
 all_all_export: ${CATEGORY}_all_export
+all_all_source: ${CATEGORY}_all_source
 
 EOF
 done
