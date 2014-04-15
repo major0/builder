@@ -82,6 +82,10 @@ for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
 	unset file
 
 	package_sources="${package_sources} ${RULESFILE}"
+	if test -f "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"; then
+		package_sources="${package_sources} ${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"
+	fi
+
 	for patch in ${PATCHES}; do
 		patch="${F}/${NAME}-${VERSION}-${patch}.patch"
 		if ! test -f "${patch}"; then
