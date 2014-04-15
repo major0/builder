@@ -59,12 +59,12 @@ build_make_compile()
 
 	## Save Space!
 	# At this point everything important should be installed into ${D}, and
-	# any form of reruning the build will remove ${S} before prepping it
+	# any form of reruning the build will remove ${W} before prepping it
 	# for build, so we might as well gut it now.  About the best option we
 	# could do would be to avoid gutting this when being run in --debug
 	# mode.
 	if test "${BUILDER_DEBUG:-0}" -eq '0'; then
-		find "${S}" -delete &
+		find "${W}" -delete &
 	fi
 
 	##
