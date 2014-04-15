@@ -57,7 +57,14 @@ for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
 	package_export="${BUILDER_TOPDIR}/exports/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm"
 	package_logdir="${L}"
 
-	package_sources="${BUILDER_TOPDIR}/.git/modules/scripts/index"
+	package_sources=
+	for index in ".git/modules/scripts" "scripts/.git"; do
+		if test -f "${BUILDER_TOPDIR}/${index}/index"; then
+			package_sources="${BUILDER_TOPDIR}/${index}/index"
+			break
+		fi
+	done
+
 	for config in ${BUILDER_INCLUDED}; do
 		if test -f "${BUILDER_CFGDIR}/${config}"; then
 			die "include does not exist '${file}'"
