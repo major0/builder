@@ -89,6 +89,18 @@ import()
 	BUILDER_CALL_STACK="${BUILDER_CALL_STASH}"
 }
 
+## include
+# include a builder config.
+# This command simply sources the named config found in TOPDIR/.builder/
+include()
+{
+	set -- "${1}" "`echo "${1}" | tr '-' '_'`"
+	test -f "${BUILDER_CFGDIR}/${1}" || die "config not found '${1}'"
+	eval "test -z '\${BUILDER_INCLUDE_${2}}'" || return
+	. "${BUILDER_CFGDIR}/${1}"
+	eval "BUILDER_INCLUDE_${2}='${BUILDER_CFGDIR}/${1}"
+}
+
 # FIXME we need a build-resolv subcmd for resolving package names
 parse_pkg_name()
 {
@@ -294,19 +306,8 @@ BUILDER_PATH="${BUILDER_LIBDIR}:${PATH}"
 PATH="${BUILDER_PATH}"
 export BUILDER_PATH PATH
 
-# FIXME The original idea here is to allow a "default" environment, that has a "default"
-# override... Basically we set some default variables, and then load the
-# default config, and THEN let the target config override anything set. This
-# is really confusing, and totally obsolted by an 'include' option in the configs.
-test -f "${BUILDER_CFGDIR}/config" && . "${BUILDER_CFGDIR}/config"
-BUILDER_CONFIG="${BUILDER_CONFIG:-config}"
-if [ "${BUILDER_CONFIG}" != 'config' ]; then
-	if [ ! -f "${BUILDER_CFGDIR}/${BUILDER_CONFIG}" ]; then
-		die "invalid config '${BUILDER_CONFIG}'"
-	fi
-	. "${BUILDER_CFGDIR}/${BUILDER_CONFIG}"
-fi
-export BUILDER_CONFIG
+# include our default config
+test -f "${BUILDER_CFGDIR}/config" && include config
 
 # FIXME MAKE_OPTS should default to #CPUS + 1, until we can detect #CPUS, we
 # just set it to 2 for uni-processor systems.
