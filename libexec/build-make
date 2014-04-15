@@ -30,7 +30,7 @@ build_make()
 	done
 
 	# If no target is given, then base our target on the current working
-	# directory, falling back to "${PROJECT}/all" as our default.
+	# directory, falling back to ${TARGET} (or all/all)
 	if test "$#" -eq '0'; then
 		case "${BUILDER_MAKE_ACTION}" in
 		(*clean) NAME='all/all';;

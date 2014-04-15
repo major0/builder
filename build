@@ -100,7 +100,7 @@ parse_pkg_name()
 	if [ "2${1#*/}" != "2${1}" ]; then
 		printf '%s' "${1}"
 	else
-		printf '%s' "${PROJECT}/${1}"
+		printf '%s' "${1}/all"
 	fi
 }
 

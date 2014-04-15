@@ -255,7 +255,7 @@ case "${QUERY_ACTION}" in
 # are already set in their environment.
 (environ)
 		cat<<-EOF
-		PROJECT="${PROJECT}"
+		TARGET="${TARGET}"
 		TOPDIR="${BUILDER_TOPDIR}"
 		SYSROOT="${SYSROOT}"
 		CBUILD="${CBUILD}"
