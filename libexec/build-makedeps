@@ -59,9 +59,20 @@ for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
 
 	package_sources="${BUILDER_TOPDIR}/.git/modules/scripts/index"
 	for config in ${BUILDER_INCLUDED}; do
-		test -f "${BUILDER_CFGDIR}/${config}" || continue
+		if test -f "${BUILDER_CFGDIR}/${config}"; then
+			die "include does not exist '${file}'"
+		fi
 		package_sources="${package_sources} ${BUILDER_CFGDIR}/${config}"
 	done
+	unset config
+
+	for file in ${EXTRA_SOURCES}; do
+		if test -f "${F}/${file}"; then
+			die "file does not exist '${file}'"
+		fi
+		package_sources="${package_sources} ${F}/${file}"
+	done
+	unset file
 
 	package_sources="${package_sources} ${RULESFILE}"
 	for patch in ${PATCHES}; do
@@ -71,6 +82,7 @@ for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
 		fi
 		package_sources="${package_sources} ${patch}"
 	done
+	unset patch
 
 	# FIXME there can be strange characters in a URI .. this might not be
 	# the best approach in the long term.

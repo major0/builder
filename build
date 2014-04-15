@@ -187,6 +187,7 @@ load_rules()
 	PATCHES=
 	RDEPENDS=
 	BDEPENDS=
+	EXTRA_SOURCES=
 
 	# Source in the package Buildrules
 	. "${RULESFILE}"
