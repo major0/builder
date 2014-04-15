@@ -100,7 +100,7 @@ while [ "$#" -gt "0" ]; do
 	(-D|-destdir|--destdir)
 		QUERY_ACTION="destdir";;
 	(--exists)
-		test -e "${BUILD_PKGDIR}/${1}/Buildrules" && exit 0 || exit 1;;
+		test -e "${BUILDER_PKGDIR}/${2}/Buildrules" && exit 0 || exit 1;;
 	(-e|-envdir|--envdir)
 		QUERY_ACTION="envdir";;
 	(-E|-environ|--environ)
