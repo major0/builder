@@ -53,7 +53,9 @@ build_make_archive()
 	fi
 	mv -v "${BUILD_MAKE_ARCHIVE_TMP2}" "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" >> "${PKG_LOGFILE}" 2>&1
 	cd "${W}"
-	find "${D}" -delete &
+	if test "${BUILDER_DEBUG:-0}" -eq '0'; then
+		find "${D}" -delete &
+	fi
 
 	##
 	# Technically everything should be done but we did throw a number of

@@ -63,7 +63,9 @@ build_make_compile()
 	# for build, so we might as well gut it now.  About the best option we
 	# could do would be to avoid gutting this when being run in --debug
 	# mode.
-	find "${S}" -delete &
+	if test "${BUILDER_DEBUG:-0}" -eq '0'; then
+		find "${S}" -delete &
+	fi
 
 	##
 	# Generate the file index.  This is done as a 0 delimited file stored
