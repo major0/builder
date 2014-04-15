@@ -99,6 +99,11 @@ include()
 	eval "test -z '\${BUILDER_INCLUDE_${2}}'" || return
 	. "${BUILDER_CFGDIR}/${1}"
 	eval "BUILDER_INCLUDE_${2}='${BUILDER_CFGDIR}/${1}"
+	if [ -z "${BUILDER_INCLUDED}" ]; then
+		BUILDER_INCLUDED="${1}"
+	else
+		BUILDER_INCLUDED="${BUILDER_INCLUDED} ${1}"
+	fi
 }
 
 # FIXME we need a build-resolv subcmd for resolving package names

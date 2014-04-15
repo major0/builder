@@ -57,7 +57,13 @@ for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
 	package_export="${BUILDER_TOPDIR}/exports/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm"
 	package_logdir="${L}"
 
-	package_sources="${RULESFILE}"
+	package_sources="${BUILDER_TOPDIR}/.git/modules/scripts/index"
+	for config in ${BUILDER_INCLUDED}; do
+		test -f "${BUILDER_CFGDIR}/${config}" || continue
+		package_sources="${package_sources} ${BUILDER_CFGDIR}/${config}"
+	done
+
+	package_sources="${package_sources} ${RULESFILE}"
 	for patch in ${PATCHES}; do
 		patch="${F}/${NAME}-${VERSION}-${patch}.patch"
 		if ! test -f "${patch}"; then
