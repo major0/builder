@@ -79,7 +79,7 @@ import()
 	test -f "${BUILDER_LIBDIR}/${1}" || die "library does not exist '${1}'"
 	eval "test -z \"\${BUILDER_IMPORT_${2}}\"" || return
 	BUILDER_CALL_STASH="${BUILDER_CALL_STACK}"
-	BUILDER_CALL_STACK="${BUILDER_CALL_STACK} ${1}" . "${BUILDER_CALL_LIBDIR}/${1}"
+	BUILDER_CALL_STACK="${BUILDER_CALL_STACK} ${1}" . "${BUILDER_LIBDIR}/${1}"
 	eval "BUILDER_IMPORT_${2}='${BUILDER_LIBDIR}/${1}'"
 	if [ -z "${BUILDER_IMPORTED}" ]; then
 		BUILDER_IMPORTED="${1}"
