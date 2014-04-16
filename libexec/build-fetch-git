@@ -92,7 +92,7 @@ build_fetch_git()
 }
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
-	simple_usage 'fetch-git' '<url>'
+	simple_usage 'fetch-git' '<url>' "$@"
 	build_fetch_git "${1}"
 fi
 

@@ -45,7 +45,7 @@ build_fetch_svn()
 }
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
-	simple_usage 'fetch-svn' '<url>'
+	simple_usage 'fetch-svn' '<url>' "$@"
 	build_fetch_svn "${1}"
 fi
 
