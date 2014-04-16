@@ -91,7 +91,8 @@ build_make()
 	export BUILDER_MAKEFILE
 	"${BUILDER_LIBDIR}/build-makedeps" || die "failed generate build dependencies"
 
-	for package in $(cd "${SYSROOT}/var/db/binpkgs" && echo */*); do
+	for package in $(cd "${SYSROOT}/var/db/binpkgs" 2> /dev/null &&
+			echo */*); do
 		test -e "${SYSROOT}/var/db/binpkgs/${package}" || continue
 		name="${package##*/}"
 		category="${package%%/*}"
