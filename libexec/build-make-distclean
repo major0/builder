@@ -14,8 +14,9 @@ build_make_distclean()
 		# this file.
 		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f &
 	fi
-	if [ -d "${W}" ]; then
-		rm -rf "${W}" &
+
+	if [ -d "${BUILDER_TMPDIR}/${CATEGORY}/${NAME}" ]; then
+		rm -rf "${BUILDER_TMPDIR}/${CATEGORY}/${NAME}" &
 	fi
 
 	wait
