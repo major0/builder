@@ -2,33 +2,15 @@
 
 build_make_distclean()
 {(
-	echo "distcleaning: ${1}"
-	load_rules "${1}"
-
-	if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
-		rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" &
-	fi
-	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-		cd "${SYSROOT}"
-		# FIXME: we are failing to handle file collisions produce in
-		# this file.
-		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f &
-	fi
-
-	if [ -d "${BUILDER_TMPDIR}/${CATEGORY}/${NAME}" ]; then
-		rm -rf "${BUILDER_TMPDIR}/${CATEGORY}/${NAME}" &
-	fi
-
-	wait
-
-	# Clobber our package marker.
-	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-		rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
-	fi
+	import build-make-clean
+	unset NOCLEAN
+	export NOCLEAN
+	build_make_clean "${1}"
 )}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'distclean' '[all|[<category>/]<package|all>]' "$@"
+	echo "distcleaning: ${1}"
 	build_make_distclean "${@}"
 fi
 

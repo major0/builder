@@ -5,7 +5,6 @@ build_make_clean()
 	load_rules "${1}"
 
 	if [ -z "${NOCLEAN}" ]; then
-		echo "cleaning: ${1}"
 		if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
 			rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" &
 		fi
@@ -30,6 +29,7 @@ build_make_clean()
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'clean' '[all|[<category>/]<package|all>]' "$@"
+	echo "cleaning: ${1}"
 	build_make_clean "${@}"
 fi
 
