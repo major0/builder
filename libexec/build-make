@@ -91,6 +91,21 @@ build_make()
 	export BUILDER_MAKEFILE
 	"${BUILDER_LIBDIR}/build-makedeps" || die "failed generate build dependencies"
 
+	for package in $(cd "${SYSROOT}/var/db/binpkgs" && echo */*); do
+		test -e "${SYSROOT}/var/db/binpkgs/${package}" || continue
+		name="${package##*/}"
+		category="${package%%/*}"
+		if ! build-query --exists "${category}/${name}"; then
+			echo "${category}/${name}: removing bad package"
+			(cd "${SYSROOT}" &&
+			 cat "var/db/binpkgs/${category}/${name}" | xargs -0 rm  -f
+			 rm "var/db/binpkgs/${category}/${name}")
+		fi
+	done
+	unset category
+	unset name
+
+
 	packages=
 	for package in "$@"; do
 		case "${package}" in
