@@ -13,12 +13,12 @@ packages as defined by rule files and manages the installation of packages (and
 their dependancies) into a sysroot target.  These rule files may dictate how to
 build a specific piece of software, or may dictate how to build disk images.
 
- * [Installation](docs/installation)
- * [Usage](docs/usage)
- * [Design](docs/design)
- * [Layout](docs/layout)
- * [Copyright](docs/copyright)
- * [Credit](docs/credit)
+ * [Installation](docs/installation.md)
+ * [Usage](docs/usage.md)
+ * [Design](docs/design.md)
+ * [Layout](docs/layout.md)
+ * [Copyright](docs/copyright.md)
+ * [Credit](docs/credit.md)
 
 [builder]: https://github.com/major0/builder "Builder"
 [gentoo]: http://en.wikipedia.org/wiki/Gentoo_Linux "Gentoo Linux"
