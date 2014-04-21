@@ -32,6 +32,8 @@ build_make_compile()
 	trap build_make_compile_cleanup 0
 	load_rules "${1}"
 
+	build uninstall "${1}"
+
 	# Declare compilation variables before loading the rules as the package
 	# may potentially overwrite this data, in particular the toolchain data
 	# is usually rewritten within the toolchain/buildtools rule.

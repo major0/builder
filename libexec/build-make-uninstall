@@ -1,0 +1,25 @@
+#!/usr/bin/env build
+
+build_make_uninstall()
+{(
+	load_rules "${1}"
+
+	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+		echo "uninstalling: ${1}"
+
+		cd "${SYSROOT}"
+		# FIXME: we are failing to handle file collisions produce in
+		# this file.
+		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f
+
+		# Clobber our package marker.
+		rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
+	fi
+)}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'uninstall' '[all|[<category>/]<package|all>]' "$@"
+	build_make_uninstall "${@}"
+fi
+
+# vim: filetype=sh

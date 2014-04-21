@@ -80,6 +80,7 @@ for package; do
 		fi
 
 		target="$(build_makedeps_name "${dep}")"
+		echo "${target}_uninstall: ${makedep_target}_uninstall"
 		echo "${target}_clean: ${makedep_target}_clean"
 		echo "${target}_distclean: ${makedep_target}_distclean"
 		echo "${makedep_prep}: ${SYSROOT}/var/db/binpkgs/${dep}"
@@ -181,6 +182,7 @@ for package; do
 	printf "${makedep_install}: ${makedep_package}\n\t@build-make-install '${package}'\n"
 	printf "${makedep_test}: ${makedep_install}\n\t@build-make-test '${package}'\n"
 	printf "${makedep_export}: ${makedep_install}\n\t@build-make-export '${package}'\n"
+	printf "${makedep_target}_uninstall:\n\t@build-make-uninstall '${package}'\n"
 	printf "${makedep_target}_clean:\n\t@build-make-clean '${package}'\n"
 	printf "${makedep_target}_distclean:\n\t@build-make-distclean '${package}'\n"
 

@@ -5,25 +5,18 @@ build_make_clean()
 	load_rules "${1}"
 
 	if [ -z "${NOCLEAN}" ]; then
+		import build-make-uninstall
+
 		if [ -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
 			rm "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" &
-		fi
-		if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-			cd "${SYSROOT}"
-			# FIXME: we are failing to handle file collisions produce in
-			# this file.
-			cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f &
 		fi
 		if [ -d "${BUILDER_TMPDIR}/${CATEGORY}/${NAME}" ]; then
 			rm -rf "${BUILDER_TMPDIR}/${CATEGORY}/${NAME}" &
 		fi
 
-		wait
+		build_make_uninstall "${1}" &
 
-		# Clobber our package marker.
-		if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
-			rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
-		fi
+		wait
 	fi
 )}
 
