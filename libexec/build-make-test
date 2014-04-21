@@ -24,7 +24,8 @@ build_make_test()
 
 	cd "${W}"
 	pkg_test >> "${PKG_LOGFILE}" 2>&1
- )}
+	date >> "${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/.test"
+)}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'test' '[all|[<category>/]<package|all>]' "$@"

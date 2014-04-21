@@ -92,6 +92,8 @@ build_make_compile()
 	wait
 	find * -depth \( ! -type d \) -print0 > "${binpkg_list}"
 	mv "${binpkg_list}" "${D}/var/db/binpkgs/${CATEGORY}/${NAME}"
+
+	date >> "${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/.compile"
 )}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then

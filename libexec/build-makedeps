@@ -1,45 +1,43 @@
 #!/usr/bin/env build
+
+build_makedeps_name() { echo "${1}"|tr '/-' '__'; }
+
 cat >"${BUILDER_MAKEFILE}" <<EOF
 ##
 # Some generic catchall rules
-all: all_all_archive
-all_fetch: all_all_fetch
-all_prep: all_all_prep
-all_compile: all_all_compile
-all_archive: all_all_archive
-all_install: all_all_install
-all_test: all_all_test
-all_export: all_all_export
-all_source: all_all_source
-all_makedeps:
-all_source:
+all: all_all
+all_all: all_all_package
+all_all_clean: exports_clean
+all_all_distclean: sysroot_clean artifacts_clean tmpdir_clean exports_clean
 
 sysroot_clean:
-	@if test -d "${SYSROOT}"; then \
-		echo "cleaning: sysroot" ; \
-		(cd "${SYSROOT}" && find . -delete) ; \
+	@if test -d "${SYSROOT}"; then \\
+		echo "cleaning: sysroot" ; \\
+		(cd "${SYSROOT}" && find . -delete) ; \\
 	fi
 artifacts_clean:
-	@if test -d "${BUILDER_ATFDIR}"; then \
-		echo "cleaning: artifacts" ; \
-		(cd "${BUILDER_ATFDIR}" && find . -delete) ; \
+	@if test -d "${BUILDER_ATFDIR}"; then \\
+		echo "cleaning: artifacts" ; \\
+		(cd "${BUILDER_ATFDIR}" && find . -delete) ; \\
 	fi
 tmpdir_clean:
-	@if test -d "${BUILDER_TMPDIR}"; then \
-		echo "cleaning: tmpdir" ; \
-		find "${BUILDER_TMPDIR}" -delete ; \
+	@if test -d "${BUILDER_TMPDIR}"; then \\
+		echo "cleaning: tmpdir" ; \\
+		find "${BUILDER_TMPDIR}" -delete ; \\
 	fi
 exports_clean:
-	@if test -d "${BUILDER_TOPDIR}/exports"; then \
-		echo "cleaning: exports" ; \
-		find "${BUILDER_TOPDIR}/exports" -delete ; \
+	@if test -d "${BUILDER_TOPDIR}/exports"; then \\
+		echo "cleaning: exports" ; \\
+		find "${BUILDER_TOPDIR}/exports" -delete ; \\
 	fi
+
 EOF
 
 PACKAGES_CLEAN=
-for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
-	test -d "${package}" || die "no packages defined"
-	package="${package#${BUILDER_PKGDIR}/}"
+set -- $(cd "${BUILDER_PKGDIR}" && echo */*)
+for package; do
+	test -d "${BUILDER_PKGDIR}/${package}" || die "no packages defined"
+
 	if ! test -f "${BUILDER_PKGDIR}/${package}/Buildrules"; then
 		error "no rulesfile for package '${package}'"
 		continue
@@ -47,134 +45,144 @@ for package in $(echo "${BUILDER_PKGDIR}"/*/*); do
 
 	load_rules "${package}"
 
-	package_make="$(echo "${package}"|tr '/-' '__')"
-	package_source="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
-	package_prep="${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/.prepped"
-	package_compile="${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/.compiled"
-	package_archive="${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}"
-	package_install="${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
-	package_test="${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/.tested"
-	package_export="${BUILDER_TOPDIR}/exports/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm"
-	package_logdir="${L}"
+	makedep_category="$(build_makedeps_name "${CATEGORY}")"
 
-	package_sources=
+	makedep_target="$(build_makedeps_name "${package}")"
+	makedep_tmpdir="${BUILDER_TMPDIR}/${package}"
+	makedep_prep="${makedep_tmpdir}/.prep"
+	makedep_compile="${makedep_tmpdir}/.compile"
+	makedep_test="${makedep_tmpdir}/.test"
+	makedep_source="${BUILDER_PKGDIR}/${package}/source"
+	makedep_package="${BUILDER_ATFDIR}/${package}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}"
+	makedep_export="${BUILDER_TOPDIR}/exports/${package}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm"
+	makedep_install="${SYSROOT}/var/db/binpkgs/${package}"
+
+	# Our entry header with simple rules
+	cat<<-END_OF_RULES
+	##
+	# ${CATEGORY}/${NAME} - ${DESCRIPTION}
+	all_all ${makedep_category}_all ${makedep_target}: ${makedep_package}
+	all_all_source ${makedep_category}_all_source ${makedep_target}_source: ${makedep_source}
+	all_all_prep ${makedep_category}_all_prep ${makedep_target}_prep: ${makedep_prep}
+	all_all_compile ${makedep_category}_all_compile ${makedep_target}_compile: ${makedep_compile}
+	all_all_packge ${makedep_category}_all_package ${makedep_target}_package: ${makedep_package}
+	all_all_install ${makedep_category}_all_install ${makedep_target}_install: ${makedep_install}
+	all_all_test ${makedep_category}_all_test ${makedep_target}_test: ${makedep_test}
+	all_all_export ${makedep_category}_all_export ${makedep_target}_export: ${makedep_export}
+	END_OF_RULES
+
+	# Add Forward and Reverse depends
+	for dep in ${BDEPENDS}; do
+		if ! test -d "${BUILDER_PKGDIR}/${dep}"; then
+			die "bad BDEPENDS in package '${package}'"
+		elif ! test -f "${BUILDER_PKGDIR}/${dep}/Buildrules"; then
+			die "no Buildrules for '${dep}'"
+		fi
+
+		target="$(build_makedeps_name "${dep}")"
+		echo "${target}_clean: ${makedep_target}_clean"
+		echo "${target}_distclean: ${makedep_target}_distclean"
+		echo "${makedep_prep}: ${SYSROOT}/var/db/binpkgs/${dep}"
+	done
+	unset target
+	unset dep
+
+	for dep in ${RDEPENDS}; do
+		if ! test -d "${BUILDER_PKGDIR}/${dep}"; then
+			die "bad RDEPENDS in package '${package}'"
+		elif ! test -f "${BUILDER_PKGDIR}/${dep}/Buildrules"; then
+			die "no Buildrules for '${dep}'"
+		fi
+		echo "${makedep_install}: ${SYSROOT}/var/db/binpkgs/${dep}"
+		echo "${makedep_test}: ${BUILDER_TMPDIR}/${dep}/.tested"
+	done
+	unset dep
+
+	# Depend on updates to 'builder'
 	for index in ".git/modules/scripts" "scripts/.git"; do
 		if test -f "${BUILDER_TOPDIR}/${index}/index"; then
-			package_sources="${BUILDER_TOPDIR}/${index}/index"
+			echo "${makedep_prep}: ${BUILDER_TOPDIR}/${index}/index"
 			break
 		fi
 	done
+	unset index
 
+	# Depend on the build rules
+	echo "${makedep_prep}: ${RULESFILE}"
+	if test -f "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"; then
+		echo "${makedep_prep}: ${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"
+	fi
+
+	# Depend on included files
 	for config in ${BUILDER_INCLUDED}; do
 		if test -f "${BUILDER_CFGDIR}/${config}"; then
 			die "include does not exist '${file}'"
 		fi
-		package_sources="${package_sources} ${BUILDER_CFGDIR}/${config}"
+		echo "${makedep_prep}: ${BUILDER_CFGDIR}/${config}"
 	done
 	unset config
 
+	# Depend on extra source files from ${F}
 	for file in ${EXTRA_SOURCES}; do
 		if test -f "${F}/${file}"; then
 			die "file does not exist '${file}'"
 		fi
-		package_sources="${package_sources} ${F}/${file}"
+		echo "${makedep_prep}: ${F}/${file}"
 	done
 	unset file
 
-	package_sources="${package_sources} ${RULESFILE}"
-	if test -f "${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"; then
-		package_sources="${package_sources} ${BUILDER_PKGDIR}/${CATEGORY}/.buildrules"
-	fi
-
+	# Depend on all listed patches
 	for patch in ${PATCHES}; do
 		patch="${F}/${NAME}-${VERSION}-${patch}.patch"
 		if ! test -f "${patch}"; then
 			die "patch does not exist '${patch}'"
 		fi
-		package_sources="${package_sources} ${patch}"
+		echo "${makedep_prep}: ${patch}"
 	done
 	unset patch
 
+
 	# FIXME there can be strange characters in a URI .. this might not be
 	# the best approach in the long term.
+	PACKAGE_SOURCES=
 	for url in ${SOURCE_URI}; do
 		case "${url}" in
 		# Do not translate local paths into archives in BUILDER_SRCDIR
-		(file://*|/*)	package_sources="${package_sources} ${url##file://}";;
+		(file://*|/*)	PACKAGE_SOURCES="${PACKAGE_SOURCES} ${url##file://}";;
 
 		# Assume anything else with :// in the name is remote
 		(*://*)		pkg_src="$(build-url --archive "${url}")"
 				if test "$?" -ne "0"; then
 					exit 1
 				fi
-				package_sources="${package_sources} ${BUILDER_SRCDIR}/${pkg_src}";;
+				PACKAGE_SOURCES="${PACKAGE_SOURCES} ${BUILDER_SRCDIR}/${pkg_src}";;
 		# Junk?
 		(*)		die "do not know how to handle url '${url}'";;
 		esac
 	done
+	echo "${makedep_source}: ${PACKAGE_SOURCES}"
 
-	# This loop can end up being fairly costly if we have to fire up
-	# build-query, particularly when dealing with a large number of
-	# packages.  So we do some FS level checks first in hopes of avoiding
-	# it and improving performance.
-	package_bdeps=
-	package_tdeps=
-	for pkg_dep in ${BDEPENDS}; do
-		if ! test -d "${BUILDER_PKGDIR}/${pkg_dep}"; then
-			die "bad BDEPENDS in package '${package}'"
-		elif ! test -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules"; then
-			die "no Buildrules for '${pkg_dep}'"
-		fi
-		package_bdeps="${package_bdeps} ${SYSROOT}/var/db/binpkgs/${pkg_dep}"
-		package_tdeps="${package_tdeps} ${BUILDER_TMPDIR}/${pkg_dep}/work/.tested"
-	done
+	if test -e "${makedep_source}"; then
+		cat<<-EOF
+		${makedep_target}_fetch: ${BUILDER_PKGDIR}/${package}/source
+		EOF
+	else
+		cat<<-EOF
+		${makedep_prep}: ${PACKAGE_SOURCES}
+		${makedep_target}_fetch: ${PACKAGE_SOURCES}
+		EOF
+	fi
 
-	package_rdeps=
-	for pkg_dep in ${RDEPENDS}; do
-		if ! test -d "${BUILDER_PKGDIR}/${pkg_dep}"; then
-			die "bad RDEPENDS in package '${package}'"
-		elif ! test -f "${BUILDER_PKGDIR}/${pkg_dep}/Buildrules"; then
-			die "no Buildrules for '${pkg_dep}'"
-		fi
-		package_rdeps="${package_rdeps} ${SYSROOT}/var/db/binpkgs/${pkg_dep}"
-	done
-	unset pkg_dep
-
-cat <<EOF
-
-##
-# ${CATEGORY}/${NAME} - ${DESCRIPTION}
-${package_make}: ${package_archive}
-${package_make}_makedeps:
-${package_make}_fetch: ${package_sources}
-${package_make}_clean:
-	@build-make-clean "${CATEGORY}/${NAME}"
-${package_make}_distclean:
-	@build-make-distclean "${CATEGORY}/${NAME}"
-${package_make}_prep: ${package_prep}
-${package_prep}: ${package_sources} ${package_bdeps}
-	@build-make-prep "${CATEGORY}/${NAME}"
-	@date >> "${package_prep}"
-${package_make}_compile: ${package_compile}
-${package_compile}: ${package_prep}
-	@build-make-compile "${CATEGORY}/${NAME}"
-	@date >> "${package_compile}"
-${package_make}_package: ${package_archive}
-${package_archive}: ${package_compile}
-	@build-make-package "${CATEGORY}/${NAME}"
-${package_make}_install: ${package_install}
-${package_install}: ${package_archive} ${package_rdeps}
-	@build-make-install "${CATEGORY}/${NAME}"
-${package_make}_source: ${package_source}
-${package_source}: ${package_sources}
-	@build-make-source "${CATEGORY}/${NAME}"
-${package_make}_test: ${package_test}
-${package_test}: ${package_tdeps} ${package_install}
-	@build-make-test "${CATEGORY}/${NAME}"
-${package_make}_export: ${package_export}
-${package_export}: ${package_install}
-	@build-make-export "${CATEGORY}/${NAME}"
-EOF
+	##
+	# Produce the various build commands
+	printf "${makedep_prep}:\n\t@build-make-prep '${package}'\n"
+	printf "${makedep_compile}: ${makedep_prep}\n\t@build-make-compile '${package}'\n"
+	printf "${makedep_package}: ${makedep_compile}\n\t@build-make-package '${package}'\n"
+	printf "${makedep_install}: ${makedep_package}\n\t@build-make-install '${package}'\n"
+	printf "${makedep_test}: ${makedep_install}\n\t@build-make-test '${package}'\n"
+	printf "${makedep_export}: ${makedep_install}\n\t@build-make-export '${package}'\n"
+	printf "${makedep_target}_clean:\n\t@build-make-clean '${package}'\n"
+	printf "${makedep_target}_distclean:\n\t@build-make-distclean '${package}'\n"
 
 	##
 	# This is a bit of a fun late-injection of the source archive for a
@@ -188,7 +196,6 @@ EOF
 	# All forms of URL translation and variable translation are done for us
 	# by fetch so that makedeps doesn't have any specific expectations on
 	# what the variable name should be.
-
 	for url in ${SOURCE_URI}; do
 		case "${url}" in
 		# Do not translate local paths into archives in BUILDER_SRCDIR
@@ -206,52 +213,7 @@ EOF
 		esac
 	done
 
-	category="$(echo "${CATEGORY}"|tr '/-' '__')"
-	CATEGORIES="${CATEGORIES} ${category}"
-
-	eval "${category}_SOURCES=\"\${${category}_SOURCES} ${package_sources}\""
-	eval "${category}_PACKAGES=\"\${${category}_PACKAGES} ${package_archive}\""
-	eval "${category}_INSTALL=\"\${${category}_INSTALL} ${package_install}\""
-	eval "${category}_TEST=\"\${${category}_TEST} ${package_test}\""
-	eval "${category}_EXPORT=\"\${${category}_EXPORT} ${package_export}\""
-	eval "${category}_SOURCE=\"\${${category}_SOURCE} ${package_source}\""
-	eval "${category}_CLEAN=\"\${${category}_CLEAN} ${package_make}_clean\""
-	eval "${category}_DISTCLEAN=\"\${${category}_DISTCLEAN} ${package_make}_distclean\""
-
-	PACKAGES_CLEAN="${PACKAGES_CLEAN} ${package_make}_clean"
+	printf '# End of %s\n\n' "${CATEGORY}/${NAME}"
 done >> "${BUILDER_MAKEFILE}"
-
-# FIXME It would have been nice to have not inserted the category if it was
-# already in the list.
-CATEGORIES="$(for CATEGORY in ${CATEGORIES};do echo "${CATEGORY}";done|sort|uniq)"
-
-for CATEGORY in ${CATEGORIES}; do
-cat<<EOF >> "${BUILDER_MAKEFILE}"
-${CATEGORY}_all: ${CATEGORY}_archive
-${CATEGORY}_all_fetch: $(eval echo "\${${CATEGORY}_SOURCES}")
-${CATEGORY}_all_archive: $(eval echo "\${${CATEGORY}_PACKAGES}")
-${CATEGORY}_all_install: $(eval echo "\${${CATEGORY}_INSTALL}")
-${CATEGORY}_all_test: $(eval echo "\${${CATEGORY}_TEST}")
-${CATEGORY}_all_export: $(eval echo "\${${CATEGORY}_EXPORT}")
-${CATEGORY}_all_source: $(eval echo "\${${CATEGORY}_SOURCE}")
-${CATEGORY}_all_clean: $(eval echo "\${${CATEGORY}_CLEAN}")
-${CATEGORY}_all_distclean: $(eval echo "\${${CATEGORY}_DISTCLEAN}")
-all_all: ${CATEGORY}_all
-all_all_fetch: ${CATEGORY}_all_fetch
-all_all_archive: ${CATEGORY}_all_archive
-all_all_install: ${CATEGORY}_all_install
-all_all_test: ${CATEGORY}_all_test
-all_all_export: ${CATEGORY}_all_export
-all_all_source: ${CATEGORY}_all_source
-
-EOF
-done
-
-cat<<EOF >> "${BUILDER_MAKEFILE}"
-all_clean: ${PACKAGES_CLEAN} exports_clean
-all_distclean: sysroot_clean artifacts_clean tmpdir_clean exports_clean
-all_all_distclean: all_distclean
-all_all_clean: all_clean
-EOF
 
 # vim: filetype=sh
