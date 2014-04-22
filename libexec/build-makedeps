@@ -176,6 +176,7 @@ for package; do
 
 	##
 	# Produce the various build commands
+	printf "${makedep_source}:\n\t@build-make-source '${package}'\n"
 	printf "${makedep_prep}:\n\t@build-make-prep '${package}'\n"
 	printf "${makedep_compile}: ${makedep_prep}\n\t@build-make-compile '${package}'\n"
 	printf "${makedep_package}: ${makedep_compile}\n\t@build-make-package '${package}'\n"
