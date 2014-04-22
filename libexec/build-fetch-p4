@@ -1,0 +1,137 @@
+#!/usr/bin/env build
+
+build_fetch_p4()
+{
+	if ! p4 client -o > /dev/null 2>&1; then
+		die 'p4 client not logged in'
+	fi
+
+	build_fetch_p4_uri="$(build-url --base "${1}")"
+	build_fetch_p4_uri="${build_fetch_p4_uri%%\?*}"
+	build_fetch_p4_uri="${build_fetch_p4_uri##p4://}"
+	build_fetch_p4_var=
+	build_fetch_p4_change=
+
+	# FIXME ignore the server if specified?  The core problem here is that
+	# p4 seems to have no way to specify what server you pull from.  It
+	# generally assumes that the p4 client only has a single local server.
+	# So specifying any such server (usually named 'perforce') is
+	# fundementally a waste.
+	if test "${build_fetch_p4_uri#/}" = "${build_fetch_p4_uri}"; then
+		build_fetch_p4_uri="/${build_fetch_p4_uri#*/}"
+	fi
+
+	for arg in $(build-url --arg "${1}"); do
+		case "${arg}" in
+		(archive=*) build_fetch_p4_var="${arg##*=}";;
+		(change=*) build_fetch_p4_change="@${arg##*=}";;
+		esac
+	done
+
+	if test -z "${build_fetch_p4_var}"; then
+		die "do not know how to store source from '${1}'"
+	fi
+
+	build_fetch_p4_dir="${build_fetch_p4_var%%.t*}"
+	build_fetch_p4_tmp="$(mktemp -d "${BUILDER_TMPDIR}/${build_fetch_p4_dir}.XXXXXX")"
+	BUILD_FETCH_CLEAN="${BUILD_FETCH_CLEAN} ${build_fetch_p4_tmp}"
+
+	# We do not really know what sort of directory tree we are getting from
+	# Perforce, so put it all into our archive directory and leave the
+	# burden of sorting the mess to any Buildrules which pull from p4://
+	mkdir -p "${build_fetch_p4_tmp}/${build_fetch_p4_dir}"
+	cd "${build_fetch_p4_tmp}/${build_fetch_p4_dir}"
+	p4 files "/${build_fetch_p4_uri}/...${build_fetch_p4_change}" | \
+			while read build_fetch_p4_line; do
+		# Parse the file type off the end of the line
+		build_fetch_p4_type="${build_fetch_p4_line##* (}"
+		build_fetch_p4_type="${build_fetch_p4_type%)}"
+		build_fetch_p4_line="${build_fetch_p4_line%% (*}"
+
+		# Parse the last changeset for the file
+		build_fetch_p4_last="${build_fetch_p4_line##*change }"
+		build_fetch_p4_line="${build_fetch_p4_line% change *}"
+
+		# add/delete/edit action
+		build_fetch_p4_action="${build_fetch_p4_line##* - }"
+		build_fetch_p4_line="${build_fetch_p4_line% - *}"
+
+		# File revision
+		build_fetch_p4_rev="${build_fetch_p4_line##*#}"
+		build_fetch_p4_line="${build_fetch_p4_line%%#*}"
+
+		# File name
+		build_fetch_p4_remote="${build_fetch_p4_line}"
+		build_fetch_p4_local="${build_fetch_p4_line#//}"
+
+		if test "${build_fetch_p4_remote}" != "//${build_fetch_p4_local}"; then
+			die "parsing '${build_fetch_p4_line}'"
+		fi
+
+		# Append the @change number, if any
+		build_fetch_p4_remote="${build_fetch_p4_remote}${build_fetch_p4_change}"
+
+		# Figure out the mode of the file we should checkout as
+		mode='0644'
+		case "${build_fetch_p4_type}" in
+		(*+x|*+wx|*+xw|xtext|kxtext|xbinary) mode='0755';;
+		(text|ktext|text+w);;
+		(symlink);;
+		(binary|ubinary|apple);;
+		(*) die "unknown filetype '${build_fetch_p4_type}'";;
+		esac
+
+		# Don't create deleted files
+		case "${build_fetch_p4_action}" in
+		(delete|move/delete) continue;;
+		(add|move/add);;
+		(edit|integrate|branch);;
+		(*) die "unknown action '${build_fetch_p4_action}'";;
+		esac
+
+		if test -f "${build_fetch_p4_local}"; then
+			die "${build_fetch_p4_action} existing file '${build_fetch_p4_local}'"
+		fi
+
+		mkdir -p "${build_fetch_p4_local%/*}"
+		p4 print -q -o "${PWD}/${build_fetch_p4_local}" "${build_fetch_p4_remote}"
+		if ! test -f "${build_fetch_p4_local}"; then
+			die "failed to ${build_fetch_p4_action} file '${build_fetch_p4_local}'"
+		fi
+		chmod "${mode}" "${build_fetch_p4_local}"
+	done
+	unset build_fetch_p4_type
+	unset build_fetch_p4_last
+	unset build_fetch_p4_action
+	unset build_fetch_p4_rev
+	unset build_fetch_p4_remote
+	unset build_fetch_p4_local
+	unset build_fetch_p4_line
+
+	exit 0
+
+	cd "${build_fetch_p4_tmp}"
+	tar caf "${build_fetch_p4_var}" "${build_fetch_p4_dir}"
+
+	if test ! -d "${BUILDER_SRCDIR}"; then
+		mkdir -p "${BUILDER_SRCDIR}"
+	fi
+
+	mv "${build_fetch_p4_var}" "${BUILDER_SRCDIR}/${build_fetch_p4_var}"
+
+	if [ -d "${build_fetch_p4_tmp}" ]; then
+		rm -rf "${build_fetch_p4_tmp}"
+	fi
+
+	unset build_fetch_p4_tmp
+	unset build_fetch_p4_var
+	unset build_fetch_p4_dir
+	unset build_fetch_p4_uri
+}
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	simple_usage 'fetch-p4' '<url>' "$@"
+	build_fetch_p4 "${1}"
+fi
+
+# vim: filetype=sh
