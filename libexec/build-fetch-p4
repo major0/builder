@@ -108,8 +108,6 @@ build_fetch_p4()
 	unset build_fetch_p4_local
 	unset build_fetch_p4_line
 
-	exit 0
-
 	cd "${build_fetch_p4_tmp}"
 	tar caf "${build_fetch_p4_var}" "${build_fetch_p4_dir}"
 
