@@ -1,8 +1,12 @@
 #!/usr/bin/env build
 
+# FIXME maybe we should rely on a list of possible commands and go through them
+# all (nproc,lscpu,etc..) instead of attempting to guess based on the OS?
 case "${CBUILD:-$(build-dumpmachine)}" in
 (*linux*)	eval 'build_num_cpus() { nproc; }';;
-(*)	die "unknown host '${CBUILD}'";;
+
+# Default to returning 1 CPU if we do not know how to handle the platform.
+(*)	eval 'build_num_cpus() { echo 1; }';;
 esac
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then

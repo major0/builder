@@ -32,8 +32,6 @@ build_make_compile()
 	trap build_make_compile_cleanup 0
 	load_rules "${1}"
 
-	build uninstall "${1}"
-
 	# Declare compilation variables before loading the rules as the package
 	# may potentially overwrite this data, in particular the toolchain data
 	# is usually rewritten within the toolchain/buildtools rule.
@@ -41,6 +39,8 @@ build_make_compile()
 	eval "$(build-query --toolchain "${CHOST}")"
 	mkenv "compile"
 	PKG_LOGFILE="${L}/compile.log"
+
+	build uninstall "${1}" >> "${PKG_LOGFILE}"
 
 	# pkgconfig can be a right pita...
 	PKG_CONFIG_LIBDIR="${SYSROOT}/usr/share/pkgconfig:${SYSROOT}/usr/lib/pkgconfig"
