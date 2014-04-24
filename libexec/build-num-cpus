@@ -1,0 +1,17 @@
+#!/usr/bin/env build
+
+case "${CBUILD:-$(build-dumpmachine)}" in
+(*linux*)	eval 'build_num_cpus() { nproc; }';;
+(*)	die "unknown host '${CBUILD}'";;
+esac
+
+if test "${BUILDER_CALL_STACK}" = '__main__'; then
+	for arg; do
+		case "${arg}" in
+		(-h|-help|--help) echo 'usage: build num-cpus'; exit 0;;
+		esac
+	done
+	build_num_cpus "${@}"
+fi
+
+# vim: filetype=sh

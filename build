@@ -315,11 +315,6 @@ export BUILDER_PATH PATH
 # include our default config
 test -f "${BUILDER_CFGDIR}/config" && include config
 
-# FIXME MAKE_OPTS should default to #CPUS + 1, until we can detect #CPUS, we
-# just set it to 2 for uni-processor systems.
-MAKE_OPTS="${MAKE_OPTS:--j2}"
-export MAKE_OPTS
-
 # Default build target
 # FIXME this should default to all/all
 TARGET="${TARGET:-all/all}"
@@ -338,6 +333,14 @@ export ARCH
 
 CHOST="${CHOST:-${CBUILD}}"
 export CHOST
+
+MAKE_OPTS=
+if test -z "${MAKE_OPTS}"; then
+	num_cpus="$(build-num-cpus)"
+	MAKE_OPTS="-j$((${num_cpus} + 1))"
+	unset num_cpus
+fi
+export MAKE_OPTS
 
 # if we aren't given an action then we do everything
 ACTION="install"
