@@ -125,7 +125,7 @@ for package; do
 
 	# Depend on extra source files from ${F}
 	for file in ${EXTRA_SOURCES}; do
-		if test -f "${F}/${file}"; then
+		if ! test -f "${F}/${file}"; then
 			die "file does not exist '${file}'"
 		fi
 		echo "${makedep_prep}: ${F}/${file}"
