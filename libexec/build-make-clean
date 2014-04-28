@@ -21,7 +21,7 @@ build_make_clean()
 {(
 	load_rules "${1}"
 
-	if [ -z "${NOCLEAN}" ]; then
+	if test "${NOCLEAN:-0}" -eq '0' ; then
 		build_make_distclean "${1}"
 	fi
 )}
