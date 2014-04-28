@@ -1,18 +1,11 @@
 #!/usr/bin/env build
 
-build_make_distclean()
-{(
-	import build-make-clean
-	unset NOCLEAN
-	export NOCLEAN
-	build_make_clean "${1}"
-)}
+import build-make-clean
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
 	simple_usage 'distclean' '[all|[<category>/]<package|all>]' "$@"
 	echo "distcleaning: ${1}"
 	build_make_distclean "${@}"
 fi
-
 
 # vim: filetype=sh
