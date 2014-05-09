@@ -12,11 +12,8 @@ build_fetch_p4()
 	build_fetch_p4_var=
 	build_fetch_p4_change=
 
-	# FIXME ignore the server if specified?  The core problem here is that
-	# p4 seems to have no way to specify what server you pull from.  It
-	# generally assumes that the p4 client only has a single local server.
-	# So specifying any such server (usually named 'perforce') is
-	# fundementally a waste.
+	# FIXME ignore the server if specified?  Technically we can set P4PORT
+	# to the server:port combination to force a server name.
 	if test "${build_fetch_p4_uri#/}" = "${build_fetch_p4_uri}"; then
 		build_fetch_p4_uri="/${build_fetch_p4_uri#*/}"
 	fi
@@ -67,6 +64,7 @@ build_fetch_p4()
 		if test "${build_fetch_p4_remote}" != "//${build_fetch_p4_local}"; then
 			die "parsing '${build_fetch_p4_line}'"
 		fi
+		build_fetch_p4_local="./${build_fetch_p4_local#${build_fetch_p4_uri#/}}"
 
 		# Append the @change number, if any
 		build_fetch_p4_remote="${build_fetch_p4_remote}${build_fetch_p4_change}"
