@@ -67,6 +67,8 @@ for package; do
 	all_package all_all_packge ${makedep_category}_all_package ${makedep_target}_package: ${makedep_package}
 	all_install all_all_install ${makedep_category}_all_install ${makedep_target}_install: ${makedep_install}
 	all_test all_all_test ${makedep_category}_all_test ${makedep_target}_test: ${makedep_test}
+	all_clean all_all_clean ${makedep_category}_all_clean: ${makedep_target}_clean
+	all_distclean all_all_distclean ${makedep_category}_all_distclean: ${makedep_target}_distclean
 	all_export all_all_export ${makedep_category}_all_export ${makedep_target}_export: ${makedep_export}
 	END_OF_RULES
 
