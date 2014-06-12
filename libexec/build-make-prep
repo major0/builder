@@ -35,7 +35,7 @@ build_make_prep()
 	PKG_LOGFILE="${L}/prep.log"
 
 	SOURCE_DIR="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
-	if [ -d "${SOURCE_DIR}" -o -L "${SOURCE_DIR}" ]; then
+	if test -e "${SOURCE_DIR}"; then
 		echo "prepping ${1} from source: '${SOURCE_DIR}"
 		if [ "$(command -v rsync)" ]; then
 			if ! rsync -rav --delete "${SOURCE_DIR}/" "${S}"; then
@@ -77,8 +77,8 @@ build_make_prep()
 	cd "${W}"
 	pkg_prep >> "${PKG_LOGFILE}" 2>&1
 
-	# FIXME wrap up the patch command with something more functional
-	if [ ! -z "${PATCHES}" ]; then
+	# FIXME wrap up the patch command with something more functional..
+	if ! test -z "${PATCHES}" && ! test -e "${SOURCE_DIR}"; then
 		for patch in ${PATCHES}; do
 			echo "${NAME}: applying patch '${patch}'" | tee -a "${PKG_LOGFILE}"
 			if ! patch -l -t -d "${S}" -p1 < "${F}/${NAME}-${VERSION}-${patch}.patch"; then

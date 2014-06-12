@@ -131,16 +131,6 @@ for package; do
 	done
 	unset file
 
-	# Depend on all listed patches
-	for patch in ${PATCHES}; do
-		patch="${F}/${NAME}-${VERSION}-${patch}.patch"
-		if ! test -f "${patch}"; then
-			die "patch does not exist '${patch}'"
-		fi
-		echo "${makedep_prep}: ${patch}"
-	done
-	unset patch
-
 
 	# FIXME there can be strange characters in a URI .. this might not be
 	# the best approach in the long term.
@@ -167,6 +157,16 @@ for package; do
 		printf "${makedep_prep}: ${makedep_target}_fetch\n\t@build-make-prep '${package}'\n"
 		printf "${makedep_target}_fetch:\n\t@rm -f ${makedep_prep}\n"
 	else
+		# Depend on all listed patches
+		for patch in ${PATCHES}; do
+			patch="${F}/${NAME}-${VERSION}-${patch}.patch"
+			if ! test -f "${patch}"; then
+				die "patch does not exist '${patch}'"
+			fi
+			echo "${makedep_prep}: ${patch}"
+		done
+		unset patch
+
 		printf "${makedep_source}: ${PACKAGE_SOURCES}\n\t@build-make-source '${package}'\n"
 		printf "${makedep_prep}: ${PACKAGE_SOURCES}\n\t@build-make-prep '${package}'\n"
 		printf "all_fetch all_all_fetch ${makedep_target}_fetch: ${PACKAGE_SOURCES}\n"
