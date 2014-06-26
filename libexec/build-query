@@ -183,10 +183,12 @@ case "${QUERY_ACTION}" in
 
 	cat<<-EOF
 	CC="${CC}"
+	export CC
 	CXX="${CXX}"
+	export CXX
 	CROSS_COMPILE="${CROSS_COMPILE}"
+	export CROSS_COMPILE
 	EOF
-	export CC CXX CROSS_COMPILE
 
 	# Note: we do not set AS since we often use gcc as the assembler
 
@@ -194,9 +196,9 @@ case "${QUERY_ACTION}" in
 		aclocal autopoint libtool libtoolize; do
 		var="$(echo "${cmd}"|tr '[a-z]' '[A-Z]')"
 		if command -v "${CROSS_COMPILE}${cmd}" > /dev/null 2>&1; then
-			echo  "${var}=${CROSS_COMPILE}${cmd}"
+			echo  "${var}=\"${CROSS_COMPILE}${cmd}\""
 		else
-			echo "${var}=${cmd}"
+			echo "${var}=\"${cmd}\""
 		fi
 		echo "export ${var}"
 	done
