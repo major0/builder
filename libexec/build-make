@@ -89,7 +89,7 @@ build_make()
 		die "failed to generate build dependencies"
 	fi
 	export BUILDER_MAKEFILE
-	"${BUILDER_LIBDIR}/build-makedeps" || die "failed generate build dependencies"
+	"${BUILDER_LIBDIR}/build-makedeps" || die "failed to generate build dependencies"
 
 	for package in $(cd "${SYSROOT}/var/db/binpkgs" 2> /dev/null &&
 			echo */*); do
