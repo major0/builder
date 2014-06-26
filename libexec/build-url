@@ -55,6 +55,10 @@ build_url_archive()
 	(*.tz)			build_url_name_complete=1;;
 	(*.zip|*.jar)		build_url_name_complete=1;;
 	(*.rpm)			build_url_name_complete=1;;
+	(*.z|*.z)		build_url_name_complete=1;;
+	(*.gz|*.gzip)		build_url_name_complete=1;;
+	(*.bz|*.bz2)		build_url_name_complete=1;;
+	(*.xz)			build_url_name_complete=1;;
 	esac
 
 	if [ "${build_url_name_complete}" -eq "1" ]; then
