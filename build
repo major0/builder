@@ -316,6 +316,7 @@ export BUILDER_PATH PATH
 
 # include our default config
 test -f "${BUILDER_CFGDIR}/config" && include config
+test -f "${BUILDER_CFGDIR}/${ARCH}" && include "${ARCH}"
 
 # Default build target
 # FIXME this should default to all/all
