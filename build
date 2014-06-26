@@ -95,8 +95,10 @@ import()
 include()
 {
 	set -- "${1}" "`echo "${1}" | tr '-' '_'`"
-	test -f "${BUILDER_CFGDIR}/${1}" || die "config not found '${1}'"
-	eval "test -z \"\${BUILDER_INCLUDE_${2}}\"" || return
+	if ! test -f "${BUILDER_CFGDIR}/${1}"; then
+		die "config not found '${1}'"
+	fi
+	eval "test -z \"\${BUILDER_INCLUDE_${2}}\"" || return 0
 	. "${BUILDER_CFGDIR}/${1}"
 	eval "BUILDER_INCLUDE_${2}='${BUILDER_CFGDIR}/${1}'"
 	if [ -z "${BUILDER_INCLUDED}" ]; then
