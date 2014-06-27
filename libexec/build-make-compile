@@ -16,9 +16,13 @@ build_compile()
 {
 	if [ -f "configure" ]; then
 		./configure	--host="${CHOST}"			\
-				--prefix="/usr" --mandir=/usr/share/man	\
-				--docdir=/usr/share/doc			\
+				--prefix=/usr				\
 				--sysconfdir=/etc			\
+				--mandir=/usr/share/man			\
+				--docdir=/usr/share/doc			\
+				--disable-dependency-tracking		\
+				--with-sysroot="${SYSROOT}"		\
+				--with-libtool-sysroot="${SYSROOT}"	\
 				${CONFIG_OPTS}
 	fi
 
