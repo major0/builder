@@ -117,7 +117,7 @@ for package; do
 
 	# Depend on included files
 	for config in ${BUILDER_INCLUDED}; do
-		if test -f "${BUILDER_CFGDIR}/${config}"; then
+		if ! test -f "${BUILDER_CFGDIR}/${config}"; then
 			die "include does not exist '${file}'"
 		fi
 		echo "${makedep_prep}: ${BUILDER_CFGDIR}/${config}"
