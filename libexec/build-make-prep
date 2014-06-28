@@ -75,6 +75,9 @@ build_make_prep()
 	fi
 
 	cd "${W}"
+	echo '## environ: pkg_prep()' >> "${PKG_LOGFILE}"
+	env >> "${PKG_LOGFILE}"
+	echo '## environ: end ' >> "${PKG_LOGFILE}"
 	pkg_prep >> "${PKG_LOGFILE}" 2>&1
 
 	# FIXME wrap up the patch command with something more functional..

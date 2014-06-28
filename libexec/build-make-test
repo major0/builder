@@ -23,6 +23,10 @@ build_make_test()
 	PKG_LOGFILE="${L}/test"
 
 	cd "${W}"
+
+	echo '## environ: pkg_test()' >> "${PKG_LOGFILE}"
+	env >> "${PKG_LOGFILE}"
+	echo '## environ: end ' >> "${PKG_LOGFILE}"
 	pkg_test >> "${PKG_LOGFILE}" 2>&1
 	date >> "${BUILDER_TMPDIR}/${CATEGORY}/${NAME}/.test"
 )}

@@ -61,6 +61,9 @@ build_make_compile()
 	# Ironically this is the heart of what the build-engine does, and yet it has
 	# been reduced to the simplest component of the entire system.
 	cd "${S}"
+	echo '## environ: pkg_compile()' >> "${PKG_LOGFILE}"
+	env >> "${PKG_LOGFILE}"
+	echo '## environ: end ' >> "${PKG_LOGFILE}"
 	pkg_compile >> "${PKG_LOGFILE}" 2>&1
 
 	## Save Space!
