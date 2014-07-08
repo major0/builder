@@ -30,6 +30,7 @@ build_compile()
 	make DESTDIR="${D}" install
 }
 pkg_compile() { build_compile; }
+pkg_post_compile() { true; }
 
 build_make_compile()
 {(
@@ -58,6 +59,7 @@ build_make_compile()
 	env >> "${PKG_LOGFILE}"
 	echo '## environ: end ' >> "${PKG_LOGFILE}"
 	pkg_compile >> "${PKG_LOGFILE}" 2>&1
+	pkg_post_compile >> "${PKG_LOGFILE}" 2>&1
 
 	## Save Space!
 	# At this point everything important should be installed into ${D}, and

@@ -1,5 +1,7 @@
 #!/usr/bin/env build
 
+pkg_post_install() { true; }
+
 build_make_install()
 {(
 	echo "installing: ${1}"
@@ -29,6 +31,8 @@ build_make_install()
 
 	${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" | tar x
 	touch "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
+
+	pkg_post_install
 )}
 
 if test "${BUILDER_CALL_STACK}" = '__main__'; then
