@@ -36,7 +36,7 @@ build_make_prep()
 
 	SOURCE_DIR="${BUILDER_PKGDIR}/${CATEGORY}/${NAME}/source"
 	if test -e "${SOURCE_DIR}"; then
-		echo "prepping ${1} from source: '${SOURCE_DIR}"
+		echo "prepping ${1} from source: '${SOURCE_DIR}'"
 		if [ "$(command -v rsync)" ]; then
 			if ! rsync -rav --delete "${SOURCE_DIR}/" "${S}"; then
 				die "failed to sync source to '${S}'"
