@@ -56,7 +56,7 @@ build_make_export()
 	License: ${LICENSE}
 	Group: ${CATEGORY}
 	Source: ${NAME}-${VERSION}.builder.tar.gz
-	Buildroot: ${SYSROOT}
+	Buildroot: ${BUILDER_SYSDIR}
 	%description
 	${DESCRIPTION}
 
@@ -73,7 +73,7 @@ build_make_export()
 	EOF
 
 	# FIXME In the long run we should see about producing -dbg and -dev rpms
-	tr '\000' '\n' < "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" \
+	tr '\000' '\n' < "${BUILDER_SYSDIR}/var/db/binpkgs/${CATEGORY}/${NAME}" \
 		| sed -e 's,^,/,' \
 		| grep -v '^/usr/include' | grep -v 'pkgconfig' | grep -v '^*\.a$' \
 		>> "${S}/SPECS/${NAME}-${VERSION}.spec"
@@ -84,7 +84,7 @@ build_make_export()
 
 	rpmbuild --quiet --target "${CHOST}"	\
 		--define "_topdir ${S}"		\
-		--define "buildroot ${SYSROOT}"	\
+		--define "buildroot ${BUILDER_SYSDIR}"	\
 		--define '_unpackaged_files_terminate_build 0'	\
 		--define '_missing_doc_files_terminate_build 0'	\
 		--define "arch ${CHOST%%-*}"	\

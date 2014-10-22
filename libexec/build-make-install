@@ -10,8 +10,8 @@ build_make_install()
 	if [ ! -f "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" ]; then
 		die "archive does not exist for package '${NAME}'"
 	fi
-	if [ ! -d "${SYSROOT}" ]; then
-		mkdir -p "${SYSROOT}" || die "failed to create system root @ '${SYSROOT}'"
+	if [ ! -d "${BUILDER_SYSDIR}" ]; then
+		mkdir -p "${BUILDER_SYSDIR}" || die "failed to create system root @ '${BUILDER_SYSDIR}'"
 	fi
 
 	# FIXME the builder configs should decide the binpkg archive format.
@@ -21,16 +21,16 @@ build_make_install()
 	(*)		die "unsupported archive format '${ARCHIVE_FORMAT}'";;
 	esac
 
-	cd "${SYSROOT}"
+	cd "${BUILDER_SYSDIR}"
 
-	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+	if [ -f "${BUILDER_SYSDIR}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
 		echo "${NAME}: removing previous version"
 		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f
 		rm "var/db/binpkgs/${CATEGORY}/${NAME}"
 	fi
 
 	${ARCHIVE_DECOMPRESSOR} "${BUILDER_ATFDIR}/${CATEGORY}/${NAME}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}" | tar x
-	touch "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
+	touch "${BUILDER_SYSDIR}/var/db/binpkgs/${CATEGORY}/${NAME}"
 
 	pkg_post_install
 )}

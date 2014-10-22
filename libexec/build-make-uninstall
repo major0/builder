@@ -4,16 +4,16 @@ build_make_uninstall()
 {(
 	load_rules "${1}"
 
-	if [ -f "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
+	if [ -f "${BUILDER_SYSDIR}/var/db/binpkgs/${CATEGORY}/${NAME}" ]; then
 		echo "uninstalling: ${1}"
 
-		cd "${SYSROOT}"
+		cd "${BUILDER_SYSDIR}"
 		# FIXME: we are failing to handle file collisions produce in
 		# this file.
 		cat "var/db/binpkgs/${CATEGORY}/${NAME}" | xargs -0 rm  -f
 
 		# Clobber our package marker.
-		rm "${SYSROOT}/var/db/binpkgs/${CATEGORY}/${NAME}"
+		rm "${BUILDER_SYSDIR}/var/db/binpkgs/${CATEGORY}/${NAME}"
 	fi
 )}
 

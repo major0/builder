@@ -300,12 +300,13 @@ BUILDER_CFGDIR="${TOPDIR}/.builder"
 BUILDER_PKGDIR="${TOPDIR}/packages"
 BUILDER_SRCDIR="${TOPDIR}/sources"
 BUILDER_ATFDIR="${TOPDIR}/artifacts"
+BUILDER_SYSDIR="${TOPDIR}/sysroot"
 BUILDER_LIBDIR="${TOPDIR}/scripts/libexec"
 BUILDER_TMPDIR="${TOPDIR}/tmp"
 
 export BUILDER_CFGDIR BUILDER_PKGDIR BUILDER_SRCDIR
-export BUILDER_ATFDIR BUILDER_LIBDIR BUILDER_TOPDIR
-export BUILDER_TMPDIR
+export BUILDER_ATFDIR BUILDER_SYSDIR BUILDER_LIBDIR
+export BUILDER_TMPDIR BUILDER_TOPDIR
 
 # The default SYSROOT .. Much of the toolchain already obeys SYSROOT .. we
 # aren't setting a policy so much as obeying one.

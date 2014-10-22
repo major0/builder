@@ -21,8 +21,8 @@ build_compile()
 				--mandir=/usr/share/man			\
 				--docdir=/usr/share/doc			\
 				--disable-dependency-tracking		\
-				--with-sysroot="${SYSROOT}"		\
-				--with-libtool-sysroot="${SYSROOT}"	\
+				--with-sysroot="${BUILDER_SYSDIR}"		\
+				--with-libtool-sysroot="${BUILDER_SYSDIR}"	\
 				${CONFIG_OPTS}
 	fi
 

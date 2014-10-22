@@ -10,9 +10,9 @@ all_all_clean: exports_clean
 all_all_distclean: sysroot_clean artifacts_clean tmpdir_clean exports_clean
 
 sysroot_clean:
-	@if test -d "${SYSROOT}"; then \\
+	@if test -d "${BUILDER_SYSDIR}"; then \\
 		echo "cleaning: sysroot" ; \\
-		(cd "${SYSROOT}" && find . -delete) ; \\
+		(cd "${BUILDER_SYSDIR}" && find . -delete) ; \\
 	fi
 artifacts_clean:
 	@if test -d "${BUILDER_ATFDIR}"; then \\
@@ -54,7 +54,7 @@ for package; do
 	makedep_source="${BUILDER_PKGDIR}/${package}/source"
 	makedep_package="${BUILDER_ATFDIR}/${package}-${VERSION}-${RELEASE}.${ARCHIVE_FORMAT}"
 	makedep_export="${BUILDER_TOPDIR}/exports/${package}-${VERSION}-${RELEASE}.${CHOST%%-*}.rpm"
-	makedep_install="${SYSROOT}/var/db/binpkgs/${package}"
+	makedep_install="${BUILDER_SYSDIR}/var/db/binpkgs/${package}"
 
 	# Our entry header with simple rules
 	cat<<-END_OF_RULES
@@ -84,7 +84,7 @@ for package; do
 		echo "${target}_uninstall: ${makedep_target}_uninstall"
 		echo "${target}_clean: ${makedep_target}_clean"
 		echo "${target}_distclean: ${makedep_target}_distclean"
-		echo "${makedep_prep}: ${SYSROOT}/var/db/binpkgs/${dep}"
+		echo "${makedep_prep}: ${BUILDER_SYSDIR}/var/db/binpkgs/${dep}"
 	done
 	unset target
 	unset dep
@@ -95,7 +95,7 @@ for package; do
 		elif ! test -f "${BUILDER_PKGDIR}/${dep}/Buildrules"; then
 			die "no Buildrules for '${dep}'"
 		fi
-		echo "${makedep_install}: ${SYSROOT}/var/db/binpkgs/${dep}"
+		echo "${makedep_install}: ${BUILDER_SYSDIR}/var/db/binpkgs/${dep}"
 		echo "${makedep_test}: ${BUILDER_TMPDIR}/${dep}/.tested"
 	done
 	unset dep
